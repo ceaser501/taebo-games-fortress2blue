@@ -2,7 +2,7 @@ import { loadManifest, loadImage, Sprites, sfxUrl, itemUrl } from './assets.js';
 import { Audio } from './audio.js';
 import { Game, DT } from './game.js';
 import { Music } from './music.js';
-import { TANKS, tankById } from './tanks.js';
+import { TANKS, PICKABLE, tankById, randomTank } from './tanks.js';
 import { ITEMS } from './items.js';
 
 const $ = (id) => document.getElementById(id);
@@ -14,7 +14,7 @@ let music = null;
 let game = null;
 let lastSetup = null;
 let itemIcons = null;
-let myTank = 'cannon';
+let myTank = 'cannon'; // a tank id, or 'random' for the ? card
 
 function option(select, value, label) {
   const o = document.createElement('option');
@@ -23,42 +23,108 @@ function option(select, value, label) {
   select.append(o);
 }
 
-// Level-ground drawing of a tank, scaled up for the menu.
-function tankPicture(id) {
-  const c = document.createElement('canvas');
-  c.width = 78; c.height = 64;
-  sprites.load(manifest.tanks[id].idle[2]).then((s) => {
-    if (!s) return;
-    const [fx, fw, fh] = s.frames[0];
-    const ctx = c.getContext('2d');
-    ctx.imageSmoothingEnabled = false;
-    const k = Math.min(2, 74 / fw, 60 / fh);
-    ctx.save();
-    ctx.translate(c.width / 2, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(s.img, fx, 0, fw, fh, (-fw * k) / 2, c.height - fh * k - 2, fw * k, fh * k);
-    ctx.restore();
+// ---- character select: the original arcade screen ----------------------------------------
+// Card spots on the 320x240 picture: twelve tanks in two rows, then the ? card.
+const CARD = { x: 7, y: [40, 84], w: 41, h: 39, step: 44 };
+const RANDOM_CARD = { x: 277, y: 40, w: 41, h: 83 };
+const STAT_ROWS = 160, STAT_STEP = 10;
+
+function cardRect(i) {
+  return { x: CARD.x + (i % 6) * CARD.step, y: CARD.y[Math.floor(i / 6)], w: CARD.w, h: CARD.h };
+}
+
+// 1-5 for each bar on the screen: defence, movement, power 1, power 2, fire angle, fire range.
+function tankStats(t) {
+  const power = (w) => Math.min(5, Math.max(1, Math.round(((w.damage * (w.count ?? 1) * (w.burst ?? 1)) / 50) * 5)));
+  return [t.defence, t.movement, power(t.weapons[0]), power(t.weapons[1]),
+    Math.max(1, Math.round(((t.angle[1] - t.angle[0]) / 90) * 5)),
+    Math.min(5, Math.max(1, Math.round((t.weapons[0].speed - 0.8) * 12)))];
+}
+
+let select = null; // { img, scale, n } once loaded
+async function buildSelect() {
+  const ids = [manifest.selectScreen, ...Object.values(manifest.tankNames), ...TANKS.map((t) => manifest.tanks[t.id].idle[2])];
+  select = { s: await sprites.loadAll(ids) };
+  const c = $('select');
+  c.addEventListener('click', (e) => {
+    const r = c.getBoundingClientRect();
+    const x = ((e.clientX - r.left) / r.width) * 320, y = ((e.clientY - r.top) / r.height) * 240;
+    const hit = (q) => x >= q.x && x < q.x + q.w && y >= q.y && y < q.y + q.h;
+    let pick = null;
+    PICKABLE.forEach((t, i) => { if (hit(cardRect(i))) pick = t.id; });
+    if (hit(RANDOM_CARD)) pick = 'random';
+    if (!pick) return;
+    myTank = pick;
+    try { localStorage.setItem('fortress-tank', pick); } catch { /* not remembered */ }
+    audio?.select();
+    drawSelect();
   });
-  return c;
+  window.addEventListener('resize', drawSelect);
+  drawSelect();
 }
 
-function buildTankCards() {
-  const box = $('tanks');
-  for (const t of TANKS) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'tank-card';
-    b.dataset.id = t.id;
-    b.append(tankPicture(t.id));
-    b.insertAdjacentHTML('beforeend', `<b>${t.name}</b><small>1번 ${t.weapons[0].name}<br>2번 ${t.weapons[1].name}</small>`);
-    b.onclick = () => { myTank = t.id; syncTankCards(); try { localStorage.setItem('fortress-tank', t.id); } catch { /* not remembered */ } };
-    box.append(b);
+function drawSelect() {
+  if (!select || $('menu').hidden) return;
+  const c = $('select');
+  const box = c.parentElement.clientWidth;
+  const scale = Math.max(1, Math.min(box / 320, (innerHeight * 0.62) / 240, 2.4));
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  c.style.width = `${Math.round(320 * scale)}px`;
+  c.style.height = `${Math.round(240 * scale)}px`;
+  c.width = Math.round(320 * scale * dpr);
+  c.height = Math.round(240 * scale * dpr);
+  // Draw in 320x240 units on a whole-number nearest-neighbour copy, then smooth it down.
+  const n = Math.ceil(scale * dpr);
+  const off = document.createElement('canvas');
+  off.width = 320 * n; off.height = 240 * n;
+  const x = off.getContext('2d');
+  x.imageSmoothingEnabled = false;
+  x.scale(n, n);
+  const sp = (id) => select.s[id];
+  const bg = sp(manifest.selectScreen);
+  if (bg) x.drawImage(bg.img, 0, 0, 320, 240, 0, 0, 320, 240);
+  const random = myTank === 'random';
+  const mine = random ? null : tankById(myTank);
+  // Selected card: a pulsing yellow frame.
+  const r = random ? RANDOM_CARD : cardRect(PICKABLE.indexOf(mine));
+  x.strokeStyle = '#ffe14a'; x.lineWidth = 2;
+  x.strokeRect(r.x - 1, r.y - 1, r.w + 2, r.h + 2);
+  x.strokeStyle = '#ff3b2f'; x.lineWidth = 1;
+  x.strokeRect(r.x - 2.5, r.y - 2.5, r.w + 5, r.h + 5);
+  // Name plate on the striped bar, and the tank in the middle window.
+  const plate = mine && sp(manifest.tankNames[mine.id]);
+  if (plate) {
+    const [fx, fw, fh] = plate.frames[0];
+    x.drawImage(plate.img, fx, 0, fw, fh, Math.round(160 - fw / 2), 134, fw, fh);
   }
-  syncTankCards();
-}
-
-function syncTankCards() {
-  for (const b of $('tanks').children) b.classList.toggle('on', b.dataset.id === myTank);
+  if (mine) {
+    const t = sp(manifest.tanks[mine.id].idle[2]);
+    const [fx, fw, fh] = t.frames[0];
+    x.save();
+    x.translate(158, 187); x.scale(-1, 1);
+    x.drawImage(t.img, fx, 0, fw, fh, -fw / 2, -fh / 2, fw, fh);
+    x.restore();
+  } else {
+    x.font = '900 26px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillStyle = '#8a3cc8'; x.fillText('?', 158, 188);
+  }
+  // Stat bars beside the labels: mine on the left, the opponent's on the right.
+  const bars = (stats, x0, right) => stats.forEach((v, i) => {
+    const y = STAT_ROWS + i * STAT_STEP + 2;
+    for (let k = 0; k < 5; k++) {
+      const bx = right ? x0 - (k + 1) * 9 : x0 + k * 9;
+      x.fillStyle = '#0b1530'; x.fillRect(bx, y, 8, 6);
+      x.fillStyle = k < v ? (v >= 4 ? '#ffd84a' : '#5fe06a') : '#2a3a66';
+      x.fillRect(bx + 1, y + 1, 6, 4);
+    }
+  });
+  if (mine) bars(tankStats(mine), 60, false);
+  const enemy = $('enemy-tank').value;
+  if (enemy && enemy !== 'random') bars(tankStats(tankById(enemy)), 260, true);
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(off, 0, 0, c.width, c.height);
 }
 
 async function init() {
@@ -73,9 +139,11 @@ async function init() {
     myTank = localStorage.getItem('fortress-tank') || myTank;
     $('player-name').value = localStorage.getItem('fortress-name') || '';
   } catch { /* nothing remembered */ }
-  buildTankCards();
-  option($('enemy-tank'), 'random', '랜덤');
-  for (const t of TANKS) option($('enemy-tank'), t.id, t.name);
+  if (myTank !== 'random' && !PICKABLE.some((t) => t.id === myTank)) myTank = 'cannon';
+  option($('enemy-tank'), 'random', '? (랜덤)');
+  for (const t of PICKABLE) option($('enemy-tank'), t.id, t.name);
+  $('enemy-tank').addEventListener('change', drawSelect);
+  buildSelect();
   option($('map'), 'random', '랜덤');
   for (const m of manifest.maps) option($('map'), m.id, m.name);
   // Stage music: the twelve long tracks.
@@ -111,14 +179,15 @@ async function prepareAudio() {
 function pickSetup() {
   const pick = (list) => list[Math.floor(Math.random() * list.length)];
   const mapId = $('map').value === 'random' ? pick(manifest.maps).id : $('map').value;
-  const enemy = $('enemy-tank').value === 'random' ? pick(TANKS).id : $('enemy-tank').value;
+  const enemy = $('enemy-tank').value === 'random' ? randomTank().id : $('enemy-tank').value;
+  const mine = myTank === 'random' ? randomTank().id : myTank;
   const cpu = $('opponent').value || null;
   const name = $('player-name').value.trim().slice(0, 8) || '나';
   try { localStorage.setItem('fortress-name', $('player-name').value.trim()); } catch { /* not remembered */ }
   return {
     map: manifest.maps.find((m) => m.id === mapId),
     players: [
-      { name, tank: myTank, cpu: null },
+      { name, tank: mine, cpu: null },
       { name: cpu ? '컴퓨터' : '2P', tank: enemy, cpu },
     ],
   };
@@ -171,6 +240,7 @@ function toMenu() {
   $('end').hidden = true;
   $('touch').hidden = true;
   $('menu').hidden = false;
+  drawSelect();
 }
 
 // ---- input ---------------------------------------------------------------------------------

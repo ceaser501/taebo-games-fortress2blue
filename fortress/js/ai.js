@@ -22,7 +22,7 @@ export class AI {
     const best = this.search(me, me.def.weapons[me.weapon], enemy);
     const err = (r) => (Math.random() * 2 - 1) * r;
     this.target = {
-      aim: Math.max(0, Math.min(90, best.aim + err(lv.angle))),
+      aim: Math.max(me.def.angle[0], Math.min(me.def.angle[1], best.aim + err(lv.angle))),
       power: Math.max(0.1, Math.min(1, best.power + err(lv.power))),
     };
     this.wait = lv.think;
@@ -58,7 +58,7 @@ export class AI {
       const own = Math.hypot(hit.x - me.cx, hit.y - me.cy);
       return Math.hypot(hit.x - enemy.cx, hit.y - enemy.cy) + (own < def.radius + 16 ? 1000 : 0);
     };
-    for (let aim = 10; aim <= 85; aim += 3) {
+    for (let aim = Math.max(10, me.def.angle[0]); aim <= Math.min(85, me.def.angle[1]); aim += 3) {
       for (let power = 0.2; power <= 1.001; power += 0.03) {
         const s = score(this.landing(me, def, aim, power));
         if (s < best.score) best = { aim, power, score: s };
@@ -68,7 +68,7 @@ export class AI {
     const coarse = best;
     for (let aim = coarse.aim - 3; aim <= coarse.aim + 3; aim += 0.5) {
       for (let power = coarse.power - 0.03; power <= coarse.power + 0.03; power += 0.005) {
-        if (aim < 0 || aim > 90 || power <= 0.05 || power > 1) continue;
+        if (aim < me.def.angle[0] || aim > me.def.angle[1] || power <= 0.05 || power > 1) continue;
         const s = score(this.landing(me, def, aim, power));
         if (s < best.score) best = { aim, power, score: s };
       }

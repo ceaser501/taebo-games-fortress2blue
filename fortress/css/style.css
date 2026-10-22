@@ -115,40 +115,16 @@ body {
   opacity: 0.6;
 }
 
-#tanks {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-}
-
-.tank-card {
+#select-box {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 8px 4px 6px !important;
-  background: rgba(255, 255, 255, 0.05) !important;
+  justify-content: center;
 }
 
-.tank-card.on {
-  border-color: #ffd84a !important;
-  background: rgba(255, 216, 74, 0.15) !important;
-}
-
-.tank-card canvas {
-  width: 78px;
-  height: 64px;
-  image-rendering: pixelated;
-}
-
-.tank-card b {
-  font-size: 14px;
-}
-
-.tank-card small {
-  font-size: 11px;
-  color: #b8c6dc;
-  line-height: 1.3;
+#select {
+  display: block;
+  border-radius: 6px;
+  box-shadow: 0 0 0 2px #0a1430, 0 6px 20px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
 }
 
 .keys {

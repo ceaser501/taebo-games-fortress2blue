@@ -12,7 +12,9 @@ export const WIND_ACCEL = 60;
 export const DT = 1 / 60;
 export const CHARGE_TIME = 1.6;
 const TURN_TIME = 20;
-const MOVE_MAX = 90;
+// Move gauge for a tank with movement 3; each point of movement adds or takes 25%.
+const MOVE_BASE = 90;
+const moveMax = (def) => MOVE_BASE * (0.5 + def.movement / 6);
 const WALK_SPEED = 30;
 const MAX_CLIMB = 5;
 const AIM_SPEED = 40;
@@ -29,11 +31,15 @@ const VIEW_W = 910, VIEW_H = 378;
 // The panel picture is rebuilt from its own columns: rows above PANEL_SPLIT hold the dial,
 // item slots and WIND / DELAY, the rows below the Energy / Power / Move bars.
 const PANEL_SPLIT = 26;
-const SLOT_X = 107, SLOT_PITCH = 22, SLOT_W = 18;
+// Item tray: from column ITEMS_X of the rebuilt panel, ITEMS_MIN..ITEMS_MAX columns wide, with
+// the cards reaching ITEMS_TOP rows above the panel. Only the item labels use short names.
+const ITEMS_X = 104, ITEMS_MIN = 132, ITEMS_MAX = 210, ITEMS_TOP = -12;
+const ITEM_LABELS = { dual: '2연발', double: '공격 2배', power: '파워샷', calm: '무풍', heal: '회복', teleport: '순간이동' };
 // The WIND bar after reshapeWindBox(): from the end of the WIND label to column 306.
 const WIND_LEFT = 259, WIND_CENTRE = 283;
 // Columns in the top rows without the stretchy ones; the panel is never narrower.
-const PANEL_MIN_W = 129 + 4 * SLOT_PITCH + 23 + 40 + 24 + 29 + 2;
+const PANEL_FIXED = ITEMS_X + 5 + 40 + 24 + 29;
+const PANEL_MIN_W = PANEL_FIXED + ITEMS_MIN + 12;
 // Height of the arrow pad on touch screens (#pad in style.css).
 const PAD_SIZE = 3 * 44 + 2 * 2;
 // Width of the fire button cluster on touch screens (#actions in style.css).
@@ -60,7 +66,7 @@ class Tank {
     Object.assign(this, { player, def, name, x, y });
     this.hp = 100;
     this.facing = 1;
-    this.aim = 45;
+    this.aim = clamp(45, def.angle[0], def.angle[1]);
     this.weapon = 0;
     this.lastPower = null;
     this.vy = 0;
@@ -138,7 +144,7 @@ export class Game {
     const t = this.active;
     this.wind = Math.round(rand(-1, 1) * 10) / 10;
     this.timer = TURN_TIME;
-    this.move = MOVE_MAX;
+    this.move = moveMax(t.def);
     this.charge = null;
     this.fired = false;
     this.after = 0;
@@ -197,10 +203,10 @@ export class Game {
       this.walk(t, dir);
       const turn = (this.keys.has('ArrowUp') ? 1 : 0) - (this.keys.has('ArrowDown') ? 1 : 0);
       // A tap moves the aim one degree; holding sweeps it.
-      if (this.pressed.has('ArrowUp') || this.pressed.has('ArrowDown')) { t.aim = clamp(t.aim + turn, 0, 90); this.aimHeld = 0; }
+      if (this.pressed.has('ArrowUp') || this.pressed.has('ArrowDown')) { t.aim = clamp(t.aim + turn, ...t.def.angle); this.aimHeld = 0; }
       else if (turn) {
         this.aimHeld += DT;
-        if (this.aimHeld > AIM_REPEAT) t.aim = clamp(t.aim + turn * AIM_SPEED * DT, 0, 90);
+        if (this.aimHeld > AIM_REPEAT) t.aim = clamp(t.aim + turn * AIM_SPEED * DT, ...t.def.angle);
       }
       if (this.pressed.has('Space') && this.grounded(t)) this.charge = 0;
     }
@@ -432,7 +438,9 @@ export class Game {
       const reach = radius + TANK_R;
       const d = Math.hypot(t.cx - p.x, t.cy - p.y);
       if (d >= reach) continue;
-      this.hurt(t, Math.round(damage * p.mult * (0.35 + 0.65 * (1 - d / reach))));
+      // Defence 3 takes the hit as is; each point either way is 10%.
+      const armour = 1.3 - t.def.defence * 0.1;
+      this.hurt(t, Math.round(damage * p.mult * armour * (0.35 + 0.65 * (1 - d / reach))));
     }
   }
 
@@ -673,7 +681,8 @@ export class Game {
     const id = this.manifest.shells[p.def.shell];
     const frame = this.frameAt(id, p.age);
     if (p.def.spin) this.drawFrame(id, frame, p.x, p.y);
-    else this.drawFrame(id, frame, p.x, p.y, false, Math.atan2(p.vy, p.vx));
+    // Pointed shells keep their first drawing and turn along the flight.
+    else this.drawFrame(id, 0, p.x, p.y, false, Math.atan2(p.vy, p.vx));
   }
 
   // The moment an item is used: a ring and sparks burst from the tank, with the item's name.
@@ -870,9 +879,9 @@ export class Game {
   panelItemAt(x, y) {
     const { k, kx, x0, y: py } = this.panelLayout();
     const u = (x - x0) / kx, v = (y - py) / k;
-    if (v < 6 || v > 26) return null;
-    const i = Math.floor((u - SLOT_X + 2) / SLOT_PITCH);
-    return i >= 0 && i < ITEMS.length && u - SLOT_X - i * SLOT_PITCH < SLOT_W + 2 ? i : null;
+    if (v < ITEMS_TOP || v > 27) return null;
+    const i = Math.floor(((u - ITEMS_X) / itemsWidth(this.panelLayout().width)) * ITEMS.length);
+    return i >= 0 && i < ITEMS.length ? i : null;
   }
 
   // Pixel art scaled by a whole number with hard edges, then down to its real size with
@@ -931,8 +940,20 @@ export class Game {
     if (!t) return;
     const s = this.sprites[this.manifest.panels[PLAYERS[t.player].panel]];
     const { k, kx, x0, y: py, width, pieces, panelW, Xt, Xb, right } = this.panelLayout();
-    if (s && this.touch) this.renderPanelEnds(s.img, x0, py, panelW, k);
-    if (s) this.drawCrisp(this.composedPanel(s.img, width, pieces), k, 0, 0, width, 56, x0, py, panelW, 56 * k);
+    if (s) {
+      // A soft shadow and a faint light rim follow the panel's outline, so it sits on the field
+      // instead of looking pasted on.
+      const composed = this.composedPanel(s.img, width, pieces);
+      for (const [color, blur, dy] of [['rgba(0,0,0,0.6)', 12, -3], ['rgba(166,233,248,0.55)', 3, 0]]) {
+        ctx.save();
+        ctx.shadowColor = color; ctx.shadowBlur = blur * this.dpr; ctx.shadowOffsetY = dy * this.dpr;
+        if (this.touch) this.renderPanelEnds(s.img, x0, py, panelW, k);
+        this.drawCrisp(composed, k, 0, 0, width, 56, x0, py, panelW, 56 * k);
+        ctx.restore();
+      }
+      if (this.touch) this.renderPanelEnds(s.img, x0, py, panelW, k);
+      this.drawCrisp(composed, k, 0, 0, width, 56, x0, py, panelW, 56 * k);
+    }
     const rect = (X, x, y, w, h, col) => { ctx.fillStyle = col; ctx.fillRect(X(x), py + y * k, X(x + w) - X(x), h * k); };
     const pfont = (size) => font(Math.round(size * k));
     const mine = t === this.active && this.state === 'aim';
@@ -955,7 +976,7 @@ export class Game {
       ctx.fillStyle = '#ffd84a'; ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(mx, my + 1); ctx.lineTo(mx - 5, my - 7); ctx.lineTo(mx + 5, my - 7); ctx.closePath(); ctx.fill(); ctx.stroke();
     }
-    rect(Xb, 140, 47, 140 * (t === this.active ? this.move / MOVE_MAX : 1), 6, '#ffb52e');
+    rect(Xb, 140, 47, 140 * (t === this.active ? this.move / moveMax(t.def) : 1), 6, '#ffb52e');
     // Wind grows from the centre mark of the (thick) WIND bar, with its strength at the end.
     const wind = this.wind ?? 0;
     const wc = Xt(WIND_CENTRE), wl = Xt(WIND_LEFT), wr = Xt(306), wy = py + 17 * k, wh = 5 * k;
@@ -980,25 +1001,7 @@ export class Game {
     }
     // FIRE1 / FIRE2: the chosen attack is lit.
     if (t.weapon === 0) rect(Xt, 87, 14, 10, 11, '#ffd84a'); else rect(Xt, 79, 34, 10, 11, '#ffd84a');
-    // Items: icon, how many are left; the ones used this turn glow.
-    ITEMS.forEach((item, i) => {
-      // Slots are counted in the rebuilt panel (slots 2-5 are copies), not in the picture.
-      const sx = x0 + (SLOT_X + i * SLOT_PITCH) * kx, sy = py + 8 * k, sw = SLOT_W * kx, sh = 17 * k;
-      const icon = this.itemIcons[item.id];
-      const used = t === this.active && this.turnItems.has(item.id);
-      if (icon) {
-        ctx.save();
-        if (!t.items[item.id] && !used) ctx.globalAlpha = 0.3;
-        this.drawCrisp(icon, (sh - 2) / icon.height, 0, 0, icon.width, icon.height, sx + 1, sy + 1, sw - 2, sh - 2);
-        ctx.restore();
-      }
-      if (used) { ctx.strokeStyle = '#ffd84a'; ctx.lineWidth = 2; ctx.strokeRect(sx, sy, sw, sh); }
-      ctx.font = pfont(5.5); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
-      ctx.lineWidth = 3; ctx.strokeStyle = '#000';
-      ctx.strokeText(t.items[item.id], sx + sw - 1, sy + sh);
-      ctx.fillStyle = '#fff';
-      ctx.fillText(t.items[item.id], sx + sw - 1, sy + sh);
-    });
+    this.renderItems(t, x0 + ITEMS_X * kx, py + ITEMS_TOP * k, pieces.items * kx, (27 - ITEMS_TOP) * k, k);
     ctx.textBaseline = 'middle';
     // TURN: lit in the player's colour when it is their turn.
     rect(Xb, 290, 30, 23, 15, mine ? t.color : '#20242c');
@@ -1008,6 +1011,77 @@ export class Game {
     // fire buttons; a computer gets the chat box.
     if (!this.touch) this.renderChat(right, k);
     if (!mine) { ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(x0, py, panelW, 56 * k); }
+  }
+
+  // The item tray in the Worms style: a rounded dark panel of cards, each with its icon, a short
+  // name and a yellow badge with how many are left. Items used this turn get a glowing frame.
+  renderItems(t, x, y, w, h, k) {
+    const { ctx } = this;
+    this.hudPanel(x, y, w, h, 4 * k);
+    const pad = 2 * k, gap = 1.5 * k;
+    const cw = (w - 2 * pad - gap * (ITEMS.length - 1)) / ITEMS.length, ch = h - 2 * pad;
+    ITEMS.forEach((item, i) => {
+      const cx = x + pad + i * (cw + gap), cy = y + pad;
+      const used = t === this.active && this.turnItems.has(item.id);
+      const left = t.items[item.id];
+      ctx.save();
+      ctx.beginPath(); ctx.roundRect(cx, cy, cw, ch, 3 * k);
+      const g = ctx.createLinearGradient(0, cy, 0, cy + ch);
+      g.addColorStop(0, used ? 'rgba(120,96,24,0.95)' : 'rgba(58,64,78,0.95)');
+      g.addColorStop(1, used ? 'rgba(60,46,10,0.95)' : 'rgba(24,27,36,0.95)');
+      ctx.fillStyle = g; ctx.fill();
+      ctx.lineWidth = Math.max(1, k * 0.6);
+      ctx.strokeStyle = used ? '#ffd84a' : '#5d6678';
+      if (used) { ctx.shadowColor = '#ffd84a'; ctx.shadowBlur = 8; }
+      ctx.stroke();
+      ctx.restore();
+      ctx.save();
+      if (!left && !used) ctx.globalAlpha = 0.35;
+      const icon = item.id === 'teleport' ? this.teleportIcon(t) : this.itemIcons[item.id];
+      const size = Math.min(cw - 2 * k, ch * 0.62);
+      if (icon) this.drawCrisp(icon, size / icon.height, 0, 0, icon.width, icon.height, cx + (cw - size) / 2, cy + 1.5 * k, size, size);
+      ctx.font = font(Math.max(8, Math.round(4.6 * k)));
+      ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillStyle = '#fff';
+      ctx.shadowColor = '#000'; ctx.shadowBlur = 2; ctx.shadowOffsetY = 1;
+      ctx.fillText(ITEM_LABELS[item.id], cx + cw / 2, cy + ch - 1.2 * k, cw - 2);
+      ctx.restore();
+      // Count badge on the top-right corner.
+      const r = 3.6 * k, bx = cx + cw - r * 0.9, by = cy + r * 0.7;
+      ctx.beginPath(); ctx.roundRect(bx - r * 1.1, by - r * 0.85, r * 2.2, r * 1.7, r * 0.85);
+      ctx.fillStyle = left ? '#ffd84a' : '#5d6678'; ctx.fill();
+      ctx.font = font(Math.round(r * 1.25), 900);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#1a1405';
+      ctx.fillText(left, bx, by + 0.5);
+    });
+  }
+
+  // 순간이동 with the player's own tank in the swirl (the Worms icon has a worm there).
+  teleportIcon(t) {
+    this.teleportIcons ??= {};
+    if (this.teleportIcons[t.def.id]) return this.teleportIcons[t.def.id];
+    const c = document.createElement('canvas');
+    c.width = 48; c.height = 48;
+    const x = c.getContext('2d');
+    x.lineCap = 'round';
+    for (const [r, a] of [[19, 0.2], [14, 2.4], [9, 4.4]]) {
+      x.strokeStyle = '#111'; x.lineWidth = 5;
+      x.beginPath(); x.arc(24, 24, r, a, a + 4); x.stroke();
+      x.strokeStyle = '#c58bff'; x.lineWidth = 2.5; x.stroke();
+    }
+    const s = this.sprites[this.manifest.tanks[t.def.id].idle[2]];
+    if (s) {
+      const [fx, fw, fh] = s.frames[0];
+      const k = 26 / Math.max(fw, fh);
+      x.imageSmoothingEnabled = false;
+      x.save(); x.translate(24, 26); x.scale(-1, 1);
+      x.drawImage(s.img, fx, 0, fw, fh, (-fw * k) / 2, (-fh * k) / 2, fw * k, fh * k);
+      x.restore();
+    }
+    x.fillStyle = '#fff';
+    for (const [px, py] of [[8, 10], [40, 12], [39, 39], [9, 37]]) { x.fillRect(px - 1, py - 3, 2, 6); x.fillRect(px - 3, py - 1, 6, 2); }
+    return (this.teleportIcons[t.def.id] = c);
   }
 
   // Touch screens: thin rounded ends on both sides of the panel so it does not look cut off.
@@ -1176,17 +1250,24 @@ function tint(img, color) {
   return c;
 }
 
+// Columns of the item tray: as wide as fits while the wind bar keeps at least 12.
+function itemsWidth(width) {
+  return clamp(width - PANEL_FIXED - 12, ITEMS_MIN, ITEMS_MAX);
+}
+
 // [first column, end column, times] pieces of the 320-column panel picture for a panel `width`
 // columns wide. One-column pieces are stretched instead of repeated.
-//   top:    dial and FIRE, slot 1, slot 2 four times (slots 2-5), slot 4 as the last slot and
-//           the frame end, then the WIND / DELAY box widened on both sides of the wind centre
-//           (the small window between them is left out)
+//   top:    dial and FIRE, an empty frame stretched under the item tray, the frame end, then the
+//           WIND box widened on both sides of the wind centre (the small window between the item
+//           slots and WIND is left out)
 //   bottom: the bars, widened at column 210
 function panelPieces(width) {
-  const room = width - (129 + 4 * SLOT_PITCH + 23 + 40 + 24 + 29);
+  const items = itemsWidth(width);
+  const room = width - PANEL_FIXED - items;
   const a = Math.floor(room / 2), b = room - a;
   return {
-    top: [[0, 129, 1], [129, 151, 4], [173, 196, 1], [225, 265, 1], [265, 266, a], [266, 290, 1], [290, 291, b], [291, 320, 1]],
+    items,
+    top: [[0, ITEMS_X, 1], [148, 149, items], [191, 196, 1], [225, 265, 1], [265, 266, a], [266, 290, 1], [290, 291, b], [291, 320, 1]],
     bottom: [[0, 210, 1], [210, 211, width - 319], [211, 320, 1]],
   };
 }
