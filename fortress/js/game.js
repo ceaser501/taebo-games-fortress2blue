@@ -733,8 +733,12 @@ export class Game {
     const id = this.manifest.shells[p.def.shell];
     const frame = this.frameAt(id, p.age);
     if (p.def.spin) this.drawFrame(id, frame, p.x, p.y);
-    // Pointed shells keep their first drawing and turn along the flight.
-    else this.drawFrame(id, 0, p.x, p.y, false, Math.atan2(p.vy, p.vx));
+    // Pointed shells keep their level drawing and turn along the flight. The anchor sits on
+    // the nose, so a drawing with its anchor on the left faces left and is turned half round.
+    else {
+      const [, fw, , ax] = this.sprites[id].frames[0];
+      this.drawFrame(id, 0, p.x, p.y, false, Math.atan2(p.vy, p.vx) + (ax < fw / 2 ? Math.PI : 0));
+    }
   }
 
   // The moment an item is used: a ring and sparks burst from the tank, with the item's name.

@@ -25,7 +25,7 @@ export const TANKS = {
     idle: ['FE25FE6C', 'FE260680', 'FE260E1C', 'FE2613CC', 'FE261B38'],
     hit: ['FE27524C', 'FE277A90', 'FE27A07C', 'FE27BD84', 'FE27E280'],
   },
-  laser: {
+  duke: {
     idle: ['FE354A48', 'FE3551A4', 'FE3558C0', 'FE355E9C', 'FE3565A8'],
     walk: ['FE3774F0', 'FE381870', 'FE38B41C', 'FE393FDC', 'FE39AEE0'],
     hit: ['FE36C48C', 'FE36E938', 'FE370CA4', 'FE372A58', 'FE374D74'],
@@ -34,7 +34,7 @@ export const TANKS = {
     idle: ['FE7162B0', 'FE716A74', 'FE717288', 'FE7179E8', 'FE71801C'],
     hit: ['FE730A28', 'FE733054', 'FE735810', 'FE737C58', 'FE739B3C'],
   },
-  multi: {
+  mine: {
     idle: ['FE7FDA88', 'FE7FE364', 'FE7FED14', 'FE7FF5AC', 'FE7FFE48'],
     walk: ['FE821458', 'FE82E40C', 'FE83E8B0', 'FE84BD10', 'FE857C48'],
     hit: ['FE8138C4', 'FE816470', 'FE819430', 'FE81BF90', 'FE81E9F4'],
@@ -43,7 +43,7 @@ export const TANKS = {
     idle: ['FE942C80', 'FE943798', 'FE944264', 'FE944A80', 'FE94535C'],
     hit: ['FE960FC4', 'FE96471C', 'FE967CF8', 'FE96A4E4', 'FE96D110'],
   },
-  duke: {
+  multi: {
     idle: ['FEA714F8', 'FEA7209C', 'FEA72B64', 'FEA733F0', 'FEA73F44'],
     walk: ['FEA8E20C', 'FEA99C3C', 'FEAA6334', 'FEAB0230', 'FEAB9D40'],
     hit: ['FEA7D7AC', 'FEA810A8', 'FEA845E0', 'FEA87074', 'FEA8A878'],
@@ -52,7 +52,7 @@ export const TANKS = {
     idle: ['FEB92110', 'FEB92A60', 'FEB9347C', 'FEB93D70', 'FEB9460C'],
     hit: ['FEBA0FC8', 'FEBA3FD0', 'FEBA737C', 'FEBAA250', 'FEBACFE4'],
   },
-  mine: {
+  secwind: {
     idle: ['FECADDE0', 'FECAEB70', 'FECAF6D4', 'FECAFF74', 'FECB0B20'],
     walk: ['FECC9338', 'FECD82A0', 'FECE6E34', 'FECF2FA0', 'FECFE6B4'],
     hit: ['FECB7014', 'FECBB27C', 'FECBEA20', 'FECC1598', 'FECC4F34'],
@@ -62,7 +62,7 @@ export const TANKS = {
     walk: ['FEE2CC6C', 'FEE3B024', 'FEE48BA8', 'FEE55C98', 'FEE63AF0'],
     hit: ['FEE1E084', 'FEE21150', 'FEE23D90', 'FEE2691C', 'FEE29D84'],
   },
-  secwind: {
+  laser: {
     idle: ['FEF4BF70', 'FEF4C900', 'FEF4D120', 'FEF4D7E0', 'FEF4DFBC'],
     hit: ['FEF54B64', 'FEF57C4C', 'FEF5A7C4', 'FEF5C964', 'FEF5F090'],
   },
@@ -70,15 +70,15 @@ export const TANKS = {
 
 // Shells, pointing right (rotated in flight) or spinning in place.
 export const SHELLS = {
-  // Round shells (their frames are a little animation, drawn as they are).
-  ball: 'FDE63E74', redBean: 'FDE644BC', rock: 'FDE7EEA0', fireRock: 'FDE84F04', mine: 'FDED4BE4',
-  cloud: 'FDF20578', blob: 'FDF2575C', star: 'FDF27C80', ring: 'FDF294D4',
-  // Long shells: the original draws each in four angles; these are the level ones, pointing
-  // right, which the game turns along the flight.
-  carrot: 'FDE7799C', carrotRocket: 'FDE648E4', arrow: 'FDE8E598', bolt: 'FDE95598',
-  missile: 'FDE997D8', bomb: 'FDEA86D8', ionOrb: 'FDEB49B8', ionBeam: 'FDEB9A68', drone: 'FDEC3E44',
-  redRocket: 'FDED59C8', bubble: 'FDEE89DC', purpleMissile: 'FDF00EF8', purpleSmall: 'FDF13E58',
-  woodMissile: 'FDF2A590', woodShort: 'FDF40F20',
+  // Round shells: their frames are a little animation, drawn as they are.
+  ball: 'FDE63E74', redBean: 'FDE644BC', rock: 'FDE7EEA0', fireRock: 'FDE84F04', grenade: 'FDED4BE4',
+  mine: 'FDED55CC', water: 'FDF20578', gas: 'FDF2575C', swirl: 'FDF27C80', ring: 'FDF294D4',
+  // Long shells: the original draws each in four angles; these are the level ones, which the
+  // game turns along the flight (the anchor marks the nose, so ones drawn facing left work too).
+  shell: 'FDE648E4', greenShell: 'FDE7799C', arrow: 'FDE8E598', poisonArrow: 'FDE976B8',
+  dukeShell: 'FDE997D8', energy: 'FDEB49B8', comet: 'FDEB9A68', redMissile: 'FDED59C8',
+  guided: 'FDEE89DC', rocket: 'FDF00EF8', rocketSmall: 'FDF13E58', superMissile: 'FDF2A590',
+  superGuided: 'FDF40F20', laser: 'FDF48368',
 };
 
 // Name plates (white, as on the original game screens) and the character select screen with

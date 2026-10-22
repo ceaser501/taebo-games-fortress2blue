@@ -18,92 +18,92 @@ export const TANKS = [
   {
     id: 'catapult', name: '카타펄트', defence: 3, movement: 2, angle: [20, 80],
     weapons: [
-      { name: '돌덩이', shell: 'rock', spin: true, speed: 0.95, gravity: 1, wind: 1.2, radius: 34, damage: 34, blast: 'large', sfx: 'throw' },
-      { name: '튕기는 불돌', shell: 'fireRock', spin: true, speed: 0.95, gravity: 1, wind: 1.2, radius: 26, damage: 28, blast: 'medium', bounce: 1, sfx: 'throw' },
+      { name: '짱돌', shell: 'rock', spin: true, speed: 0.95, gravity: 1, wind: 1.2, radius: 34, damage: 34, blast: 'large', sfx: 'throw' },
+      { name: '불덩어리 돌', shell: 'fireRock', spin: true, speed: 0.95, gravity: 1, wind: 1.2, radius: 28, damage: 32, blast: 'large', sfx: 'throw' },
     ],
   },
   {
     id: 'crossbow', name: '크로스보우', defence: 2, movement: 4, angle: [0, 70],
     weapons: [
-      { name: '화살', shell: 'arrow', speed: 1.12, gravity: 0.8, wind: 0.5, radius: 14, damage: 38, blast: 'small', sfx: 'arrow' },
-      { name: '화살 연사', shell: 'bolt', speed: 1.12, gravity: 0.8, wind: 0.5, radius: 12, damage: 16, blast: 'small', burst: 3, gap: 0.3, sfx: 'arrow' },
+      { name: '화살', shell: 'arrow', speed: 1.12, gravity: 0.8, wind: 0.5, radius: 14, damage: 34, blast: 'small', sfx: 'arrow' },
+      { name: '독화살', shell: 'poisonArrow', speed: 1.12, gravity: 0.8, wind: 0.5, radius: 12, damage: 42, blast: 'small', sfx: 'arrow' },
     ],
   },
   {
     id: 'cannon', name: '캐논', defence: 3, movement: 3, angle: [0, 90],
     weapons: [
-      { name: '검콩', shell: 'ball', spin: true, speed: 1, gravity: 1, wind: 1, radius: 26, damage: 32, blast: 'medium', sfx: 'boom' },
-      { name: '빨콩', shell: 'redBean', spin: true, speed: 0.95, gravity: 1.05, wind: 0.8, radius: 34, damage: 40, blast: 'large', sfx: 'boom' },
+      { name: '검콩', shell: 'ball', spin: true, speed: 1, gravity: 1, wind: 1, radius: 30, damage: 34, blast: 'medium', sfx: 'boom' },
+      { name: '빨콩', shell: 'redBean', spin: true, speed: 1, gravity: 1, wind: 1, radius: 22, damage: 40, blast: 'medium', sfx: 'boom' },
     ],
   },
   {
-    id: 'carrot', name: '카롯', defence: 3, movement: 3, angle: [10, 85],
+    id: 'carrot', name: '캐롯', defence: 3, movement: 3, angle: [10, 85],
     weapons: [
-      { name: '당근 미사일', shell: 'carrot', speed: 1.06, gravity: 1, wind: 1.2, radius: 22, damage: 30, blast: 'medium', sfx: 'missile' },
-      { name: '당근 3발', shell: 'carrotRocket', speed: 1.06, gravity: 1, wind: 1.2, radius: 16, damage: 16, blast: 'small', count: 3, spread: 5, sfx: 'missile' },
-    ],
-  },
-  {
-    id: 'laser', name: '레이저', defence: 2, movement: 3, angle: [0, 60],
-    weapons: [
-      { name: '레이저', shell: 'missile', speed: 1.25, gravity: 0.45, wind: 0.2, radius: 14, damage: 34, blast: 'small', sfx: 'arrow' },
-      { name: '플라스마', shell: 'bomb', speed: 1.1, gravity: 0.7, wind: 0.4, radius: 24, damage: 30, blast: 'medium', sfx: 'missile' },
-    ],
-  },
-  {
-    id: 'missile', name: '미사일', defence: 3, movement: 2, angle: [20, 90],
-    weapons: [
-      { name: '미사일', shell: 'redRocket', speed: 1, gravity: 1, wind: 0.8, radius: 28, damage: 36, blast: 'medium', sfx: 'missile' },
-      { name: '소형 미사일 2발', shell: 'redRocket', speed: 1, gravity: 1, wind: 0.8, radius: 18, damage: 20, blast: 'small', burst: 2, gap: 0.35, sfx: 'missile' },
+      { name: '탱크포', shell: 'shell', speed: 1.04, gravity: 1, wind: 1, radius: 24, damage: 32, blast: 'medium', sfx: 'missile' },
+      { name: '녹색 포탄 3발', shell: 'greenShell', speed: 1.04, gravity: 1, wind: 1.1, radius: 16, damage: 16, blast: 'small', count: 3, spread: 5, sfx: 'missile' },
     ],
   },
   {
     id: 'duke', name: '듀크', defence: 5, movement: 1, angle: [30, 90],
     weapons: [
-      { name: '드릴탄', shell: 'woodMissile', speed: 0.9, gravity: 1.1, wind: 0.6, radius: 30, damage: 38, blast: 'large', sfx: 'boom' },
-      { name: '대형 드릴탄', shell: 'woodShort', speed: 0.85, gravity: 1.15, wind: 0.5, radius: 42, damage: 46, blast: 'large', sfx: 'boom' },
+      { name: '탱크포', shell: 'dukeShell', speed: 0.95, gravity: 1.05, wind: 0.8, radius: 30, damage: 36, blast: 'large', sfx: 'boom' },
+      { name: '독가스탄', shell: 'gas', spin: true, speed: 0.9, gravity: 1.05, wind: 1, radius: 40, damage: 30, blast: 'large', sfx: 'throw' },
     ],
   },
   {
-    id: 'secwind', name: '세크윈드', defence: 1, movement: 5, angle: [0, 80],
+    id: 'missile', name: '미사일', defence: 3, movement: 2, angle: [20, 45],
     weapons: [
-      { name: '제트탄', shell: 'ring', spin: true, speed: 1.15, gravity: 0.9, wind: 1.2, radius: 20, damage: 28, blast: 'medium', sfx: 'missile' },
-      { name: '바람 구슬 3발', shell: 'blob', spin: true, speed: 1.1, gravity: 0.9, wind: 1.2, radius: 14, damage: 15, blast: 'small', count: 3, spread: 7, sfx: 'throw' },
+      { name: '빨간 미사일', shell: 'redMissile', speed: 1.05, gravity: 1, wind: 0.8, radius: 30, damage: 38, blast: 'large', sfx: 'missile' },
+      { name: '녹색 유도탄', shell: 'guided', speed: 1.05, gravity: 1, wind: 0.6, radius: 18, damage: 24, blast: 'small', sfx: 'missile' },
     ],
   },
   {
     id: 'multi', name: '멀티 미사일', defence: 3, movement: 3, angle: [15, 85],
     weapons: [
-      { name: '로켓 3발', shell: 'purpleMissile', speed: 1.02, gravity: 1, wind: 1, radius: 16, damage: 15, blast: 'small', count: 3, spread: 4, sfx: 'missile' },
-      { name: '로켓 연사', shell: 'purpleSmall', speed: 1.02, gravity: 1, wind: 1, radius: 14, damage: 12, blast: 'small', burst: 4, gap: 0.2, sfx: 'missile' },
+      { name: '로켓 3발', shell: 'rocket', speed: 1.02, gravity: 1, wind: 1, radius: 16, damage: 15, blast: 'small', count: 3, spread: 4, sfx: 'missile' },
+      { name: '로켓 9발', shell: 'rocketSmall', speed: 1.02, gravity: 1, wind: 1, radius: 12, damage: 7, blast: 'small', count: 9, spread: 3, sfx: 'missile' },
     ],
   },
   {
-    id: 'ion', name: '아이온 어태커', defence: 2, movement: 3, angle: [10, 80],
+    id: 'laser', name: '레이저', defence: 2, movement: 3, angle: [0, 60],
     weapons: [
-      { name: '이온탄', shell: 'ionOrb', speed: 1.05, gravity: 0.85, wind: 0.6, radius: 22, damage: 30, blast: 'medium', sfx: 'arrow' },
-      { name: '대형 이온탄', shell: 'ionBeam', speed: 0.95, gravity: 0.9, wind: 0.6, radius: 32, damage: 36, blast: 'large', sfx: 'arrow' },
-    ],
-  },
-  {
-    id: 'poseidon', name: '포세이돈', defence: 3, movement: 4, angle: [10, 85],
-    weapons: [
-      { name: '물폭탄', shell: 'cloud', spin: true, speed: 1, gravity: 1, wind: 1, radius: 24, damage: 32, blast: 'medium', sfx: 'throw' },
-      { name: '튕기는 물방울', shell: 'bubble', speed: 0.95, gravity: 1, wind: 1, radius: 26, damage: 30, blast: 'medium', bounce: 2, sfx: 'throw' },
+      { name: '레이저탄', shell: 'laser', speed: 1.2, gravity: 0.5, wind: 0.2, radius: 14, damage: 34, blast: 'small', sfx: 'arrow' },
+      { name: '레이저 연사', shell: 'laser', speed: 1.2, gravity: 0.5, wind: 0.2, radius: 12, damage: 18, blast: 'small', burst: 2, gap: 0.25, sfx: 'arrow' },
     ],
   },
   {
     id: 'mine', name: '마인 랜더', defence: 4, movement: 2, angle: [30, 90],
     weapons: [
-      { name: '지뢰탄', shell: 'mine', spin: true, speed: 0.95, gravity: 1.05, wind: 0.9, radius: 30, damage: 34, blast: 'large', sfx: 'throw' },
-      { name: '튕기는 지뢰', shell: 'drone', speed: 0.9, gravity: 1.05, wind: 0.9, radius: 24, damage: 26, blast: 'medium', bounce: 2, sfx: 'throw' },
+      { name: '유탄', shell: 'grenade', spin: true, speed: 0.95, gravity: 1.05, wind: 0.9, radius: 28, damage: 32, blast: 'medium', sfx: 'throw' },
+      { name: '지뢰 2개', shell: 'mine', spin: true, speed: 0.9, gravity: 1.05, wind: 0.9, radius: 22, damage: 22, blast: 'medium', count: 2, spread: 6, bounce: 1, sfx: 'throw' },
+    ],
+  },
+  {
+    id: 'ion', name: '아이온 어태커', defence: 2, movement: 3, angle: [10, 80],
+    weapons: [
+      { name: '에너지탄', shell: 'energy', speed: 1.05, gravity: 0.85, wind: 0.6, radius: 22, damage: 30, blast: 'medium', sfx: 'arrow' },
+      { name: '위성탄', shell: 'comet', speed: 0.95, gravity: 0.9, wind: 0.6, radius: 34, damage: 38, blast: 'large', sfx: 'arrow' },
+    ],
+  },
+  {
+    id: 'poseidon', name: '포세이돈', defence: 3, movement: 4, angle: [10, 85],
+    weapons: [
+      { name: '물덩어리', shell: 'water', spin: true, speed: 1, gravity: 1, wind: 1, radius: 30, damage: 30, blast: 'medium', sfx: 'throw' },
+      { name: '큰 물덩어리', shell: 'water', spin: true, speed: 0.92, gravity: 1.05, wind: 1, radius: 40, damage: 36, blast: 'large', sfx: 'throw' },
+    ],
+  },
+  {
+    id: 'secwind', name: '세크윈드', defence: 1, movement: 5, angle: [0, 80],
+    weapons: [
+      { name: '에너지탄', shell: 'swirl', spin: true, speed: 1.1, gravity: 0.9, wind: 1.2, radius: 20, damage: 30, blast: 'medium', sfx: 'arrow' },
+      { name: '회전 에너지탄 2발', shell: 'ring', spin: true, speed: 1.1, gravity: 0.9, wind: 1.2, radius: 16, damage: 20, blast: 'small', count: 2, spread: 6, sfx: 'arrow' },
     ],
   },
   {
     id: 'super', name: '슈퍼탱크', defence: 5, movement: 4, angle: [0, 90], secret: true,
     weapons: [
-      { name: '슈퍼 빔', shell: 'star', spin: true, speed: 1.2, gravity: 0.6, wind: 0.3, radius: 30, damage: 48, blast: 'large', sfx: 'arrow' },
-      { name: '슈퍼탄 3발', shell: 'purpleMissile', speed: 1.05, gravity: 1, wind: 0.6, radius: 28, damage: 30, blast: 'large', count: 3, spread: 6, sfx: 'boom' },
+      { name: '3연발 미사일', shell: 'superMissile', speed: 1.05, gravity: 1, wind: 0.8, radius: 26, damage: 26, blast: 'large', burst: 3, gap: 0.3, sfx: 'missile' },
+      { name: '9연발 유도탄', shell: 'superGuided', speed: 1.05, gravity: 1, wind: 0.6, radius: 14, damage: 9, blast: 'small', count: 9, spread: 3, sfx: 'missile' },
     ],
   },
 ];
