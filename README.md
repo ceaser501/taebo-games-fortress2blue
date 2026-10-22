@@ -15,6 +15,17 @@ npm start                                                         # 개발 서�
 npm run build                                                     # dist/ 로 빌드
 ```
 
+## 웹 배포 (Cloudflare Pages)
+
+```bash
+npm run build
+npm run deploy          # dist/ 를 Cloudflare Pages 프로젝트 taesu-fortress 로 올림
+```
+
+처음 한 번은 `npx wrangler login`(브라우저 로그인)과
+`npx wrangler pages project create taesu-fortress --production-branch main`이 필요합니다. 주소는 `https://taesu-fortress.pages.dev`입니다.
+빌드 전에 `npm run fortress:assets`로 변환해 두어야 그림·소리가 함께 올라갑니다.
+
 게임 규칙·조작은 [`fortress/README.md`](fortress/README.md)에 있습니다.
 
 ## 원본 데이터 변환
