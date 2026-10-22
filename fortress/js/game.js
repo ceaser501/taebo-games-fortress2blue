@@ -8,7 +8,7 @@ import { ITEMS, POWER_SHOT, HEAL } from './items.js';
 export const WORLD_H = 480;
 export const GRAVITY = 270;
 export const MAX_SPEED = 520;
-export const WIND_ACCEL = 60;
+export const WIND_ACCEL = 38;
 export const DT = 1 / 60;
 export const CHARGE_TIME = 1.6;
 const TURN_TIME = 20;
@@ -1015,7 +1015,7 @@ export class Game {
       // A soft shadow and a faint light rim follow the panel's outline, so it sits on the field
       // instead of looking pasted on.
       const composed = this.composedPanel(s.img, width, pieces);
-      for (const [color, blur, dy] of [['rgba(0,0,0,0.6)', 12, -3], ['rgba(166,233,248,0.55)', 3, 0]]) {
+      for (const [color, blur, dy] of [['rgba(166,233,248,0.5)', 2, 0]]) {
         ctx.save();
         ctx.shadowColor = color; ctx.shadowBlur = blur * this.dpr; ctx.shadowOffsetY = dy * this.dpr;
         if (this.touch) this.renderPanelEnds(s.img, x0, py, panelW, k);
@@ -1156,7 +1156,6 @@ export class Game {
     // Touch screens leave the corners open so the field shows around the arrow pad and the
     // fire buttons; a computer gets the chat box.
     if (!this.touch) this.renderChat(right, k);
-    if (!mine) { ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(x0, py, panelW, 56 * k); }
   }
 
   // The item tray in the Worms style: a rounded dark panel of cards, each with its icon, a short

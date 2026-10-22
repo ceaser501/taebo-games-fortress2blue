@@ -70,12 +70,15 @@ export const TANKS = {
 
 // Shells, pointing right (rotated in flight) or spinning in place.
 export const SHELLS = {
-  ball: 'FDE63E74', redBean: 'FDE644BC', missiles: 'FDE648E4', fireball: 'FDE84F04', carrot: 'FDE7799C', rock: 'FDE7EEA0',
-  fireRock: 'FDE832D4', arrow: 'FDE8E598', bolt: 'FDE95598',
-  beam: 'FDEB9A68', plasma: 'FDEB8D90', ion: 'FDEAC808', ionBig: 'FDEB2960', rocket: 'FDE6B0CC',
-  rocketSmall: 'FDE648E4', bomb: 'FDEA5DE0', bombSmall: 'FDE9E660', drill: 'FDF10AE8', drillBig: 'FDEFD5C0',
-  fish: 'FDEBD2CC', fishBig: 'FDEC2490', mine: 'FDEC9FD8', blob: 'FDF1810C', star: 'FDF1A1E8',
-  superShell: 'FDF294D4', jet: 'FDF3C9E4', orb: 'FDE969E0',
+  // Round shells (their frames are a little animation, drawn as they are).
+  ball: 'FDE63E74', redBean: 'FDE644BC', rock: 'FDE7EEA0', fireRock: 'FDE84F04', mine: 'FDED4BE4',
+  cloud: 'FDF20578', blob: 'FDF2575C', star: 'FDF27C80', ring: 'FDF294D4',
+  // Long shells: the original draws each in four angles; these are the level ones, pointing
+  // right, which the game turns along the flight.
+  carrot: 'FDE7799C', carrotRocket: 'FDE648E4', arrow: 'FDE8E598', bolt: 'FDE95598',
+  missile: 'FDE997D8', bomb: 'FDEA86D8', ionOrb: 'FDEB49B8', ionBeam: 'FDEB9A68', drone: 'FDEC3E44',
+  redRocket: 'FDED59C8', bubble: 'FDEE89DC', purpleMissile: 'FDF00EF8', purpleSmall: 'FDF13E58',
+  woodMissile: 'FDF2A590', woodShort: 'FDF40F20',
 };
 
 // Name plates (white, as on the original game screens) and the character select screen with
