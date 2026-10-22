@@ -45,8 +45,10 @@ const PANEL_CUT = 7;
 const DIAL_X = 40, DIAL_Y = 31, DIAL_RX = 32.6, DIAL_RY = 31.5;
 const PANEL_FIXED = ITEMS_X - PANEL_CUT + 5 + 40 + 24 + 18;
 const PANEL_MIN_W = PANEL_FIXED + ITEMS_MIN + 12;
-// Panel width on touch screens, in picture columns: the bars a little longer than the least.
-const TOUCH_PANEL_W = PANEL_MIN_W + 40;
+// Touch screens: the panel is sized as if the tray still had six cards (so it stays as large as
+// before the calm-wind item went), then drawn one card narrower, with even margins.
+const ONE_CARD = 20;
+const TOUCH_PANEL_W = PANEL_MIN_W;
 // Height of the arrow pad on touch screens (#pad in style.css).
 const PAD_SIZE = 3 * 38 + 2 * 2;
 // Touch screens: the arrow pad's right edge (6 + 3 * 38 + 2 * 2) and the 1번 button's left edge
@@ -577,7 +579,7 @@ export class Game {
     // On touch screens the right box is as wide as the fire cluster (#actions plus its margin),
     // so no button covers the panel.
     const rightW = this.touch ? FIRE_LEFT + SIDE_GAP : Math.round(clamp(W * 0.26, 220, 420));
-    this.panelScale = clamp(Math.min((W - leftW - rightW) / (this.touch ? TOUCH_PANEL_W : PANEL_MIN_W), (H * (this.touch ? 0.29 : 0.16)) / 56), 1, 2.4);
+    this.panelScale = clamp(Math.min((W - leftW - rightW) / (this.touch ? TOUCH_PANEL_W + ONE_CARD : PANEL_MIN_W), (H * (this.touch ? 0.29 : 0.16)) / 56), 1, 2.4);
     this.panelH = Math.round(56 * this.panelScale);
     this.bar = { leftW, rightW };
     // The touch buttons sit in the boxes at both ends of the bar.
