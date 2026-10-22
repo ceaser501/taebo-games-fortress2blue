@@ -1,7 +1,7 @@
 {
-  "name": " ",
+  "name": "taebo-games-fortress2blue",
   "version": "0.0.1",
-  "description": "",
+  "description": "포트리스2 블루 스타일 턴제 포격 게임 (브라우저)",
   "private": true,
   "keywords": [
     ""
@@ -9,9 +9,9 @@
   "license": "",
   "author": "",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "webpack serve --open --config webpack.config.dev.js",
-    "build": "webpack --config webpack.config.prod.js"
+    "build": "webpack --config webpack.config.prod.js",
+    "fortress:assets": "node fortress/tools/convert-assets.mjs"
   },
   "devDependencies": {
     "copy-webpack-plugin": "^11.0.0",
