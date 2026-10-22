@@ -1063,7 +1063,29 @@ export class Game {
       ctx.fillText(Math.round(t.aim), cx, cy + 9 * k);
     }
     // FIRE1 / FIRE2: the chosen attack is lit.
-    if (t.weapon === 0) rect(Xt, 87, 14, 10, 11, '#ffd84a'); else rect(Xt, 79, 34, 10, 11, '#ffd84a');
+    // FIRE1 / FIRE2 hold the two attacks' shells, as in the original; the chosen one is lit.
+    t.def.weapons.forEach((w, i) => {
+      const [ux, uy] = i === 0 ? [92, 19.5] : [84, 39.5];
+      const cx = Xt(ux), cy = py + uy * k, r = 6.2 * k;
+      const on = t.weapon === i;
+      ctx.save();
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      const g = ctx.createRadialGradient(cx, cy - r * 0.3, r * 0.1, cx, cy, r);
+      if (on) { g.addColorStop(0, '#fff6c0'); g.addColorStop(1, '#ffb800'); } else { g.addColorStop(0, '#2a3040'); g.addColorStop(1, '#0a0d14'); }
+      ctx.fillStyle = g;
+      if (on) { ctx.shadowColor = '#ffd84a'; ctx.shadowBlur = 3 * k; }
+      ctx.fill();
+      ctx.restore();
+      const s = this.sprites[this.manifest.shells[w.shell]];
+      if (s) {
+        const [fx, fw, fh] = s.frames[0];
+        const size = r * 1.5, sc = size / Math.max(fw, fh);
+        ctx.save();
+        if (!on) ctx.globalAlpha = 0.75;
+        this.drawCrisp(s.img, sc, fx, 0, fw, fh, cx - (fw * sc) / 2, cy - (fh * sc) / 2, fw * sc, fh * sc);
+        ctx.restore();
+      }
+    });
     this.renderItems(t, x0 + ITEMS_X * kx, py + ITEMS_TOP * k, pieces.items * kx, (26.5 - ITEMS_TOP) * k, k);
     ctx.textBaseline = 'middle';
     // TURN: lit in the player's colour when it is their turn.

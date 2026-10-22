@@ -70,10 +70,10 @@ export const TANKS = {
 
 // Shells, pointing right (rotated in flight) or spinning in place.
 export const SHELLS = {
-  ball: 'FDE63E74', fireball: 'FDE84F04', carrot: 'FDE7799C', rock: 'FDE7EEA0',
+  ball: 'FDE63E74', redBean: 'FDE644BC', missiles: 'FDE648E4', fireball: 'FDE84F04', carrot: 'FDE7799C', rock: 'FDE7EEA0',
   fireRock: 'FDE832D4', arrow: 'FDE8E598', bolt: 'FDE95598',
   beam: 'FDEB9A68', plasma: 'FDEB8D90', ion: 'FDEAC808', ionBig: 'FDEB2960', rocket: 'FDE6B0CC',
-  rocketSmall: 'FDE644BC', bomb: 'FDEA5DE0', bombSmall: 'FDE9E660', drill: 'FDF10AE8', drillBig: 'FDEFD5C0',
+  rocketSmall: 'FDE648E4', bomb: 'FDEA5DE0', bombSmall: 'FDE9E660', drill: 'FDF10AE8', drillBig: 'FDEFD5C0',
   fish: 'FDEBD2CC', fishBig: 'FDEC2490', mine: 'FDEC9FD8', blob: 'FDF1810C', star: 'FDF1A1E8',
   superShell: 'FDF294D4', jet: 'FDF3C9E4', orb: 'FDE969E0',
 };
