@@ -33,7 +33,7 @@ const VIEW_W = 910, VIEW_H = 378;
 const PANEL_SPLIT = 26;
 // Item tray: from column ITEMS_X of the rebuilt panel, ITEMS_MIN..ITEMS_MAX columns wide, with
 // the cards reaching ITEMS_TOP rows above the panel. Only the item labels use short names.
-const ITEMS_X = 104, ITEMS_MIN = 132, ITEMS_MAX = 210, ITEMS_TOP = -12;
+const ITEMS_X = 104, ITEMS_MIN = 120, ITEMS_MAX = 150, ITEMS_TOP = -3;
 const ITEM_LABELS = { dual: '2연발', double: '공격 2배', power: '파워샷', calm: '무풍', heal: '회복', teleport: '순간이동' };
 // The WIND bar after reshapeWindBox(): from the end of the WIND label to column 306.
 const WIND_LEFT = 259, WIND_CENTRE = 283;
@@ -1040,14 +1040,14 @@ export class Game {
       const icon = item.id === 'teleport' ? this.teleportIcon(t) : this.itemIcons[item.id];
       const size = Math.min(cw - 2 * k, ch * 0.62);
       if (icon) this.drawCrisp(icon, size / icon.height, 0, 0, icon.width, icon.height, cx + (cw - size) / 2, cy + 1.5 * k, size, size);
-      ctx.font = font(Math.max(8, Math.round(4.6 * k)));
+      ctx.font = font(Math.max(7, Math.round(4 * k)));
       ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
       ctx.fillStyle = '#fff';
       ctx.shadowColor = '#000'; ctx.shadowBlur = 2; ctx.shadowOffsetY = 1;
       ctx.fillText(ITEM_LABELS[item.id], cx + cw / 2, cy + ch - 1.2 * k, cw - 2);
       ctx.restore();
       // Count badge on the top-right corner.
-      const r = 3.6 * k, bx = cx + cw - r * 0.9, by = cy + r * 0.7;
+      const r = 3 * k, bx = cx + cw - r * 0.9, by = cy + r * 0.7;
       ctx.beginPath(); ctx.roundRect(bx - r * 1.1, by - r * 0.85, r * 2.2, r * 1.7, r * 0.85);
       ctx.fillStyle = left ? '#ffd84a' : '#5d6678'; ctx.fill();
       ctx.font = font(Math.round(r * 1.25), 900);
