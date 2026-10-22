@@ -1,7 +1,7 @@
 // Computer player: tries every angle and power against the current wind with the real shell
 // physics, picks the shot that lands closest to the enemy, then turns the barrel and charges
 // like a person would. Lower levels add aiming error.
-import { DT, CHARGE_TIME, MAX_SPEED, FLOOR_Y, Game } from './game.js';
+import { DT, CHARGE_TIME, MAX_SPEED, WATER_Y, Game } from './game.js';
 
 const LEVELS = {
   easy: { angle: 6, power: 0.07, think: 1.2 },
@@ -43,7 +43,7 @@ export class AI {
       for (let s = 0; s < steps; s++) {
         p.x += (p.vx * DT) / steps;
         p.y += (p.vy * DT) / steps;
-        if (p.y >= FLOOR_Y || p.x < -400 || p.x > t.width + 400) return null;
+        if (p.y >= WATER_Y || p.x < -400 || p.x > t.width + 400) return null;
         if (g.tanks.some((k) => !k.dead && (k !== me || i > 15) && Math.hypot(k.cx - p.x, k.cy - p.y) < 13)) return { x: p.x, y: p.y };
         if (t.solid(p.x, p.y)) return { x: p.x, y: p.y };
       }

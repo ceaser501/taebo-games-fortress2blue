@@ -21,10 +21,11 @@ const FALL_SAFE = 24;
 const FALL_DAMAGE = 0.6;
 const TANK_R = 13;
 const AFTERMATH = 0.6;
-// Like the original there is no water: a tank that drops off the bottom of the map is out.
-export const FLOOR_Y = WORLD_H;
+// Water fills everything below the bottom of the map (like Worms); its surface sits on the top
+// edge of the bottom bar and a tank that drops in is out.
+export const WATER_Y = WORLD_H;
 // What the view shows at zoom 1: at least this many world pixels across and up.
-const VIEW_W = 820, VIEW_H = 340;
+const VIEW_W = 910, VIEW_H = 378;
 // The panel picture is rebuilt from its own columns: rows above PANEL_SPLIT hold the dial,
 // item slots and WIND / DELAY, the rows below the Energy / Power / Move bars.
 const PANEL_SPLIT = 26;
@@ -109,7 +110,7 @@ export class Game {
       for (let tries = 0; tries < 200; tries++) {
         x = Math.round(rand(from, to));
         y = t.surfaceBelow(x);
-        if (y != null && y < FLOOR_Y - 30 && t.solid(x - 6, y + 2) && t.solid(x + 6, y + 2)) break;
+        if (y != null && y < WATER_Y - 30 && t.solid(x - 6, y + 2) && t.solid(x + 6, y + 2)) break;
       }
       const tank = new Tank(i, p.tank, p.name, x, y ?? 0);
       tank.items = Object.fromEntries(ITEMS.map((it) => [it.id, it.count]));
@@ -242,7 +243,7 @@ export class Game {
     const t = this.active;
     const x = clamp(Math.round(world.x), 8, this.terrain.width - 8);
     const y = this.terrain.surfaceBelow(x, Math.round(world.y) - 30);
-    if (y == null || y >= FLOOR_Y - 10 || this.terrain.solid(x, y - 20)) {
+    if (y == null || y >= WATER_Y - 10 || this.terrain.solid(x, y - 20)) {
       this.label(world.x, world.y, '갈 수 없는 곳이에요', t.color);
       return;
     }
@@ -298,7 +299,7 @@ export class Game {
 
   updateTank(t) {
     t.hitTime = Math.max(0, t.hitTime - DT);
-    if (t.y > FLOOR_Y + 30) { this.fallOut(t); return; }
+    if (t.y > WATER_Y + 4) { this.drown(t); return; }
     if (this.supported(t.x, t.y)) {
       // Climb out if the ground was rebuilt under it (never happens today, cheap to keep).
       while (this.terrain.solid(t.x, t.y - 1) && t.y > 0) t.y--;
@@ -323,12 +324,13 @@ export class Game {
     if (fall > FALL_SAFE) this.hurt(t, Math.round((fall - FALL_SAFE) * FALL_DAMAGE));
   }
 
-  fallOut(t) {
+  drown(t) {
     if (t.dead) return;
     t.dead = true;
     t.hp = 0;
-    this.label(t.x, FLOOR_Y - 40, '낙사!', t.color);
-    this.say(`${t.name} 낙사`, '#ff9f6a');
+    this.splash(t.x);
+    this.label(t.x, WATER_Y - 30, '퐁당!', t.color);
+    this.say(`${t.name} 물에 빠짐`, '#7fd0ff');
   }
 
   hurt(t, dmg) {
@@ -393,7 +395,7 @@ export class Game {
     const steps = Math.ceil(Math.max(Math.abs(p.vx), Math.abs(p.vy)) * DT) || 1;
     for (let i = 0; i < steps; i++) {
       const nx = p.x + (p.vx * DT) / steps, ny = p.y + (p.vy * DT) / steps;
-      if (ny >= FLOOR_Y + 60) { p.dead = true; return; }
+      if (ny >= WATER_Y) { p.dead = true; this.splash(nx); return; }
       if (nx < -400 || nx > t.width + 400) { p.dead = true; return; }
       const hit = this.tanks.find((k) => !k.dead && (k !== p.owner || p.age > 0.25) && Math.hypot(k.cx - nx, k.cy - ny) < TANK_R);
       if (hit) { p.x = nx; p.y = ny; this.detonate(p); return; }
@@ -433,6 +435,12 @@ export class Game {
   addBlast(size, x, y) {
     const id = this.manifest.blasts[size];
     if (this.sprites[id]) this.blasts.push({ id, x, y, age: 0 });
+  }
+
+  splash(x) {
+    const id = this.manifest.blasts.splash;
+    if (this.sprites[id]) this.blasts.push({ id, x, y: WATER_Y + 4, age: 0 });
+    this.audio.splash();
   }
 
   label(x, y, text, color) {
@@ -510,9 +518,8 @@ export class Game {
     this.zoomLevel = clamp(this.zoomLevel ?? 1, 0.6, 3);
     this.scale = fit * this.zoomLevel;
     this.viewW = W / this.scale;
-    // The bottom bar lies over the bottom of the map, so the view reaches the screen's bottom
-    // edge and the field gets the bar's height of extra sky.
-    this.viewH = H / this.scale;
+    // The bottom of the map (the water line) sits on the top edge of the bottom bar.
+    this.viewH = (H - this.panelH) / this.scale;
     this.canvas.width = Math.round(W * this.dpr);
     this.canvas.height = Math.round(H * this.dpr);
   }
@@ -549,7 +556,7 @@ export class Game {
     const w = this.terrain.width;
     if (this.viewW >= w + 40) c.x = (w - this.viewW) / 2;
     else c.x = clamp(c.x, -20, w - this.viewW + 20);
-    // The bottom of the world sits on the bottom of the screen. The view rises only a little for
+    // The water line sits on the top edge of the bottom bar. The view rises only a little for
     // high shells so the ground stays in sight; above that a marker shows where the shell is.
     c.y = clamp(c.y, WORLD_H - this.viewH - 60, WORLD_H - this.viewH);
     // Never leave the tank or shell being followed behind the bottom bar.
@@ -580,6 +587,7 @@ export class Game {
     for (const t of this.tanks) if (!t.dead) this.renderTank(t);
     for (const p of this.projectiles) this.renderProjectile(p);
     for (const b of this.blasts) this.renderBlast(b);
+    this.renderWater();
     for (const t of this.tanks) if (!t.dead) this.renderTag(t);
     this.renderAim();
     for (const p of this.projectiles) if (p.y < sy + 4) this.offscreenMarker(p.x, sy + 4);
@@ -686,6 +694,16 @@ export class Game {
     ctx.fillStyle = '#ffd84a'; ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 5, y + 8); ctx.lineTo(x + 5, y + 8); ctx.closePath();
     ctx.fill(); ctx.stroke();
+  }
+
+  renderWater() {
+    const { ctx } = this;
+    ctx.fillStyle = 'rgba(30,70,150,0.9)';
+    ctx.fillRect(-500, WATER_Y, this.terrain.width + 1000, 700);
+    ctx.fillStyle = 'rgba(160,210,255,0.8)';
+    for (let x = -500; x < this.terrain.width + 500; x += 6) {
+      ctx.fillRect(x, WATER_Y - 2 + Math.round(Math.sin(x / 18 + this.time * 2) * 1.5), 6, 2);
+    }
   }
 
   renderBlast(b) {
@@ -1055,6 +1073,8 @@ export class Game {
     }
     ctx.fillStyle = '#ffd84a';
     for (const p of this.projectiles) ctx.fillRect(Math.round(x + p.x * k) - 1, Math.round(y + clamp(p.y, 0, WORLD_H) * k) - 1, 2, 2);
+    ctx.fillStyle = 'rgba(60,110,200,0.8)';
+    ctx.fillRect(x, y + h - 2, w, 2);
     ctx.strokeStyle = 'rgba(255,255,255,0.8)';
     const c = this.camera;
     ctx.strokeRect(Math.round(x + c.x * k) + 0.5, Math.round(y + c.y * k) + 0.5, Math.round(this.viewW * k), Math.round(this.viewH * k));
