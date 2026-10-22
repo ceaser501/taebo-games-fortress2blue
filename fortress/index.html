@@ -66,6 +66,16 @@
     </div>
     <button id="start" disabled>불러오는 중…</button>
     <p id="notice"></p>
+    <section id="online">
+      <h2>친구와 온라인 대전</h2>
+      <p class="sub">위에서 고른 내 탱크로 1:1. 맵은 방장이 고른 맵이에요. 방장은 빨강, 친구는 파랑이에요.</p>
+      <div class="online-row">
+        <button id="host" type="button">방 만들기</button>
+        <input id="code" type="text" maxlength="5" placeholder="방 코드" autocomplete="off" spellcheck="false">
+        <button id="join" type="button">참가</button>
+      </div>
+      <p id="net-status"></p>
+    </section>
     <div class="menu-row">
       <button type="button" id="menu-full" hidden>전체화면으로 하기</button>
       <button type="button" id="menu-music" hidden>배경음악 켜짐 ♪</button>
@@ -86,8 +96,30 @@
     </dl>
   </div>
 
+  <div id="lobby" class="panel" hidden>
+    <h1>대기실</h1>
+    <div id="lobby-code-box">
+      <span>방 코드</span>
+      <strong id="lobby-code"></strong>
+      <button id="copy-code" type="button">복사</button>
+    </div>
+    <ul id="players">
+      <li id="slot-host" class="joined"><i class="dot red"></i><span></span><em>방장</em></li>
+      <li id="slot-guest" class="waiting"><i class="dot blue"></i><span></span><em></em></li>
+    </ul>
+    <p id="lobby-settings"></p>
+    <p id="lobby-status"></p>
+    <div class="lobby-actions">
+      <button id="lobby-start" type="button" disabled>게임 시작</button>
+      <button id="lobby-leave" type="button">나가기</button>
+    </div>
+  </div>
+
+  <div id="net-banner" hidden></div>
+
   <div id="pause" class="panel" hidden>
     <h1>메뉴</h1>
+    <p id="pause-note"></p>
     <button type="button" id="resume">계속하기</button>
     <button type="button" id="pause-full" hidden>전체화면</button>
     <button type="button" id="pause-music" hidden>배경음악 켜짐 ♪</button>
@@ -96,7 +128,9 @@
 
   <div id="end" class="panel" hidden>
     <h1 id="end-title"></h1>
+    <p id="end-note"></p>
     <button id="again">다시 하기</button>
+    <button id="to-lobby" hidden>대기실로</button>
     <button id="to-menu">메뉴로</button>
   </div>
 

@@ -59,6 +59,8 @@ const FONT = '"Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans C
 const font = (size, weight = 800) => `${weight} ${size}px ${FONT}`;
 
 const rand = (a, b) => a + Math.random() * (b - a);
+const r1 = (v) => Math.round(v * 10) / 10;
+const r2 = (v) => Math.round(v * 100) / 100;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 class Tank {
@@ -84,8 +86,13 @@ class Tank {
 export class Game {
   // players: [{ name, tank (def from tanks.js), cpu: null | 'easy' | 'normal' | 'hard' }]
   // sprites: id -> { img, frames } for everything the match draws.
-  constructor({ canvas, manifest, sprites, itemIcons = {}, audio, map, players, onEnd, onTurn = () => {} }) {
-    Object.assign(this, { canvas, manifest, sprites, itemIcons, audio, onEnd, onTurn });
+  // Online play: the host simulates and calls `emit` with effects for the guest; the guest
+  // builds a `replica` from the host's start message and only draws the host's snapshots.
+  // `myPlayer` is the player at this screen (null = everyone, as in local play).
+  constructor({ canvas, manifest, sprites, itemIcons = {}, audio, map, players, onEnd, onTurn = () => {}, emit = null, replica = null, myPlayer = null }) {
+    Object.assign(this, { canvas, manifest, sprites, itemIcons, audio, onEnd, onTurn, myPlayer });
+    this.emit = emit || (() => {});
+    this.replica = !!replica;
     this.ctx = canvas.getContext('2d');
     this.map = map;
     this.terrain = Terrain.fromImage(sprites[map.ground].img, WORLD_H);
@@ -101,6 +108,19 @@ export class Game {
     this.camera = { x: 0, y: 0, shake: 0, free: false, snap: true };
     this.time = 0;
     this.players = players;
+    if (replica) {
+      this.tanks = replica.tanks.map(([x, y], i) => {
+        const t = new Tank(i, players[i].tank, players[i].name, x, y);
+        t.items = Object.fromEntries(ITEMS.map((it) => [it.id, it.count]));
+        return t;
+      });
+      this.turn = 0;
+      this.state = 'idle';
+      this.wind = 0;
+      this.move = 0;
+      this.resize();
+      return;
+    }
     this.tanks = this.spawn(players);
     this.ai = new AI(this);
     this.turn = Math.floor(Math.random() * this.tanks.length) - 1;
@@ -131,9 +151,12 @@ export class Game {
 
   get active() { return this.tanks[this.turn]; }
   get cpuTurn() { return !!this.players[this.turn]?.cpu; }
+  // Whether the person at this screen may act now.
+  get myTurn() { return !this.cpuTurn && (this.myPlayer == null || this.active?.player === this.myPlayer); }
   // The panel at the bottom belongs to the person at this screen: the only human, or in a
   // two-person game on one screen, whoever is playing.
   get panelTank() {
+    if (this.myPlayer != null) return this.tanks[this.myPlayer];
     const humans = this.tanks.filter((t) => !this.players[t.player].cpu);
     return humans.length === 1 ? humans[0] : this.active;
   }
@@ -155,7 +178,7 @@ export class Game {
     this.state = 'aim';
     this.camera.free = false;
     this.camera.snap = true;
-    this.banner = { text: `${t.name} 차례`, color: t.color, life: 1.4 };
+    this.setBanner(`${t.name} 차례`, t.color, 1.4);
     this.audio.turn();
     this.onTurn(t);
     if (this.cpuTurn) this.ai.plan(this.players[t.player].cpu);
@@ -187,7 +210,7 @@ export class Game {
     if (this.state !== 'aim' || this.fired || this.charge != null || !this.active.def.weapons[i]) return;
     if (this.active.weapon !== i) this.audio.select();
     this.active.weapon = i;
-    this.banner = { text: this.active.def.weapons[i].name, color: '#ffd84a', life: 0.9 };
+    this.setBanner(this.active.def.weapons[i].name, '#ffd84a', 0.9);
   }
 
   handleInput() {
@@ -235,12 +258,24 @@ export class Game {
       this.label(t.x, t.y - 44, `+${gain}`, '#6be06b');
     } else if (id === 'teleport') {
       this.teleportArmed = true;
-      this.banner = { text: '이동할 곳을 탭(클릭)하세요', color: '#c58bff', life: 3 };
+      this.setBanner('이동할 곳을 탭(클릭)하세요', '#c58bff', 3);
     }
     const item = ITEMS.find((it) => it.id === id);
-    this.itemFx.push({ name: item.name, color: item.color, life: 1.4 });
+    this.itemPop(item.id);
     this.say(`${t.name}: ${item.name}`, item.color);
     this.audio.item();
+  }
+
+  itemPop(id) {
+    const item = ITEMS.find((it) => it.id === id);
+    if (!item) return;
+    this.itemFx.push({ name: item.name, color: item.color, life: 1.4 });
+    this.emit({ t: 'itemfx', a: [id] });
+  }
+
+  setBanner(text, color, life) {
+    this.banner = text ? { text, color, life } : null;
+    this.emit({ t: 'banner', a: [text, color, life] });
   }
 
   // A tap on the field; only the armed teleport uses it.
@@ -258,7 +293,7 @@ export class Game {
     }
     Object.assign(t, { x, y, vy: 0, fallFrom: null });
     this.teleportArmed = false;
-    this.banner = null;
+    this.setBanner(null);
     this.audio.item();
     this.fired = true;
     this.state = 'fly';
@@ -428,7 +463,7 @@ export class Game {
   detonate(p) {
     p.dead = true;
     const { radius, damage, blast } = p.def;
-    this.terrain.explode(p.x, p.y, radius);
+    this.crater(p.x, p.y, radius);
     this.addBlast(blast, p.x, p.y);
     this.audio.explosion(blast);
     this.camera.shake = Math.min(10, radius / 4);
@@ -443,18 +478,26 @@ export class Game {
     }
   }
 
+  crater(x, y, r) {
+    this.terrain.explode(x, y, r);
+    this.emit({ t: 'crater', a: [r1(x), r1(y), r] });
+  }
+
   addBlast(size, x, y) {
+    this.emit({ t: 'blast', a: [size, r1(x), r1(y)] });
     const id = this.manifest.blasts[size];
     if (this.sprites[id]) this.blasts.push({ id, x, y, age: 0 });
   }
 
   splash(x) {
+    this.emit({ t: 'splash', a: [r1(x)] });
     const id = this.manifest.blasts.splash;
     if (this.sprites[id]) this.blasts.push({ id, x, y: WATER_Y + 4, age: 0 });
-    this.audio.splash();
+    if (!this.replica) this.audio.splash();
   }
 
   label(x, y, text, color) {
+    this.emit({ t: 'label', a: [r1(x), r1(y), text, color] });
     this.labels.push({ x, y, text, color, life: 1.4 });
   }
 
@@ -462,7 +505,8 @@ export class Game {
 
   update() {
     this.time += DT;
-    if (this.menuPaused) return;
+    if (this.replica) { this.updateEffects(); this.updateCamera(); return; }
+    if (this.menuPaused || this.paused) return;
     if (this.cpuTurn && this.state === 'aim') this.ai.update();
     this.handleInput();
     this.pressed.clear();
@@ -482,17 +526,7 @@ export class Game {
     for (const t of this.tanks) if (!t.dead) this.updateTank(t);
     for (const p of this.projectiles) this.updateProjectile(p);
     this.projectiles = this.projectiles.filter((p) => !p.dead);
-    for (const b of this.blasts) b.age += DT;
-    this.blasts = this.blasts.filter((b) => b.age * 1000 < this.blastLength(b.id));
-    for (const l of this.labels) { l.life -= DT; l.y -= 20 * DT; }
-    for (const f of this.itemFx) f.life -= DT;
-    this.itemFx = this.itemFx.filter((f) => f.life > 0);
-    this.labels = this.labels.filter((l) => l.life > 0);
-    if (this.banner) {
-      this.banner.life -= DT;
-      this.banner.age = (this.banner.age ?? 0) + DT;
-      if (this.banner.life <= 0) this.banner = null;
-    }
+    this.updateEffects();
     // The tank whose turn it is fell in the water or blew up: the turn is over.
     if (this.state === 'aim' && this.active.dead) { this.state = 'fly'; this.fired = true; this.charge = null; }
     if (this.state === 'fly') {
@@ -501,6 +535,22 @@ export class Game {
       if (this.after >= AFTERMATH) this.nextTurn();
     }
     this.updateCamera();
+  }
+
+  // Explosions, floating numbers, item bursts and the banner age and fade.
+  updateEffects() {
+    for (const b of this.blasts) b.age += DT;
+    this.blasts = this.blasts.filter((b) => b.age * 1000 < this.blastLength(b.id));
+    for (const l of this.labels) { l.life -= DT; l.y -= 20 * DT; }
+    for (const f of this.itemFx) f.life -= DT;
+    this.itemFx = this.itemFx.filter((f) => f.life > 0);
+    this.labels = this.labels.filter((l) => l.life > 0);
+    for (const t of this.tanks) t.hitTime = Math.max(0, t.hitTime - (this.replica ? DT : 0));
+    if (this.banner) {
+      this.banner.life -= DT;
+      this.banner.age = (this.banner.age ?? 0) + DT;
+      if (this.banner.life <= 0) this.banner = null;
+    }
   }
 
   blastLength(id) {
@@ -1340,7 +1390,56 @@ export class Game {
     ctx.restore();
   }
 
+  // ---- online sync -------------------------------------------------------------------------
+
+  // Everything the guest needs to draw the current frame.
+  snapshot() {
+    return {
+      st: this.state, tu: this.turn, tm: r1(this.timer ?? 0), wd: this.wind,
+      ch: this.charge == null ? null : r2(this.charge), mv: r1(this.move ?? 0),
+      ti: [...(this.turnItems ?? [])], tp: this.teleportArmed ? 1 : 0,
+      k: this.tanks.map((t) => [r1(t.x), r1(t.y), t.hp, t.dead ? 1 : 0, t.facing, r1(t.aim), t.weapon,
+        t.lastPower == null ? null : r2(t.lastPower), t.walking ? 1 : 0, r2(t.hitTime), ITEMS.map((it) => t.items[it.id])]),
+      p: this.projectiles.map((p) => [this.tanks.indexOf(p.owner), p.owner.def.weapons.indexOf(p.def), r1(p.x), r1(p.y), r1(p.vx), r1(p.vy), r2(p.age)]),
+    };
+  }
+
+  applySnapshot(s) {
+    const turned = s.tu !== this.turn || (s.st === 'aim' && this.state !== 'aim');
+    const tick = Math.ceil(s.tm) !== Math.ceil(this.timer ?? 0);
+    Object.assign(this, { state: s.st, turn: s.tu, timer: s.tm, wind: s.wd, charge: s.ch, move: s.mv, teleportArmed: !!s.tp });
+    if (tick) this.tickAt = this.time;
+    this.turnItems = new Set(s.ti);
+    s.k.forEach(([x, y, hp, dead, facing, aim, weapon, lastPower, walking, hitTime, items], i) => {
+      const t = this.tanks[i];
+      if (walking) t.walkTime += DT * 3;
+      Object.assign(t, { x, y, hp, dead: !!dead, facing, aim, weapon, lastPower, walking: !!walking, hitTime });
+      ITEMS.forEach((it, j) => { t.items[it.id] = items[j]; });
+    });
+    this.projectiles = s.p.map(([ti, wi, x, y, vx, vy, age]) => {
+      const owner = this.tanks[ti];
+      return { owner, def: owner.def.weapons[wi], x, y, vx, vy, age };
+    });
+    if (turned && s.st === 'aim') {
+      this.camera.free = false;
+      this.camera.snap = true;
+      this.onTurn(this.active);
+    }
+  }
+
+  applyEvent(e) {
+    if (e.t === 'crater') this.terrain.explode(...e.a);
+    else if (e.t === 'blast') this.addBlast(...e.a);
+    else if (e.t === 'splash') this.splash(...e.a);
+    else if (e.t === 'label') this.label(...e.a);
+    else if (e.t === 'say') this.say(...e.a);
+    else if (e.t === 'itemfx') this.itemPop(...e.a);
+    else if (e.t === 'banner') this.setBanner(...e.a);
+    else if (e.t === 'sfx') this.audio[e.n]?.(...e.a);
+  }
+
   say(text, color = '#cfd8e6') {
+    this.emit({ t: 'say', a: [text, color] });
     this.log.push({ text, color, time: this.time });
     if (this.log.length > 40) this.log.shift();
   }

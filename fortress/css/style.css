@@ -297,3 +297,263 @@ body:not(.touch) .touch-help {
     display: block;
   }
 }
+
+/* ---- online: menu section, lobby (from taebo-games-worms) ---- */
+
+#online {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(80, 150, 255, 0.45);
+  border-radius: 8px;
+  background: rgba(80, 150, 255, 0.07);
+}
+
+#online h2 {
+  margin: 0;
+  font-size: 15px;
+  color: #6fb4ff;
+}
+
+#online .sub,
+#net-status,
+#end-note {
+  margin: 0;
+  font-size: 12px;
+  color: #bcd;
+}
+
+.online-row {
+  display: flex;
+  gap: 6px;
+}
+
+#code {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  text-align: center;
+}
+
+#player-name {
+  font: inherit;
+  width: 150px;
+}
+
+#install,
+#menu-full {
+  padding: 10px;
+  font-weight: bold;
+  background: #2b5ea8;
+  border-color: #7fb2ff;
+}
+
+#menu-music {
+  padding: 10px;
+  font-weight: bold;
+}
+
+#ios-help,
+#kakao p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #ffd84a;
+}
+
+#kakao {
+  z-index: 10;
+}
+
+#kakao h1 {
+  font-size: 22px;
+  letter-spacing: 0;
+}
+
+#kakao-open {
+  padding: 12px;
+  font-size: 16px;
+  background: #c8501e;
+}
+
+#net-banner {
+  margin-top: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: rgba(200, 40, 40, 0.85);
+  font-size: 13px;
+  font-weight: bold;
+}
+
+#pause {
+  z-index: 5;
+}
+
+#pause-note {
+  margin: 0;
+  font-size: 13px;
+  color: #bcd;
+}
+
+#pause #resume {
+  padding: 12px;
+  font-size: 18px;
+  background: #c8501e;
+}
+
+#pause #quit {
+  padding: 10px;
+  color: #ffb4b4;
+}
+
+#loading h1 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: 1px;
+}
+
+/* Lobby */
+#lobby-code-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(255, 216, 74, 0.08);
+  border: 1px dashed rgba(255, 216, 74, 0.5);
+}
+
+#lobby-code-box span {
+  font-size: 12px;
+  color: #bcd;
+}
+
+#lobby-code {
+  font: 800 34px/1.1 ui-monospace, Menlo, monospace;
+  letter-spacing: 8px;
+  color: #ffd84a;
+  user-select: all;
+}
+
+#players {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#players li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  font-weight: bold;
+}
+
+#players li em {
+  margin-left: auto;
+  font-style: normal;
+  font-size: 12px;
+  color: #9fd89f;
+}
+
+#players li.waiting span,
+#players li.connecting span {
+  color: #8a96a8;
+  font-weight: normal;
+}
+
+#players li.waiting span::after,
+#players li.connecting span::after {
+  content: '';
+  animation: dots 1.4s steps(4) infinite;
+}
+
+@keyframes dots {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+}
+
+#players li.connecting {
+  background: rgba(79, 195, 255, 0.12);
+}
+
+#players li.joined:not(#slot-host) {
+  background: rgba(107, 224, 107, 0.12);
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.dot.red { background: #ff5a5a; }
+.dot.blue { background: #5ab0ff; }
+
+#lobby-settings,
+#lobby-status {
+  margin: 0;
+  font-size: 13px;
+  color: #bcd;
+}
+
+#lobby-status {
+  color: #ffd84a;
+  min-height: 1.3em;
+}
+
+.lobby-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.lobby-actions #lobby-start {
+  flex: 1;
+  padding: 10px;
+  font-size: 18px;
+  background: linear-gradient(180deg, #3d7bff, #1d48b8);
+}
+
+.lobby-actions #lobby-start:disabled {
+  background: #4a4f5a;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #players li span::after { animation: none; content: '…'; }
+}
+
+#notice {
+  margin: 0;
+  font-size: 12px;
+
+#net-banner {
+  position: fixed;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(8, 14, 28, 0.85);
+  border: 1px solid #ffd84a;
+  color: #ffd84a;
+  font-size: 13px;
+  font-weight: 700;
+  z-index: 3;
+}
+
+#net-banner[hidden] {
+  display: none;
+}
