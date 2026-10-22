@@ -3,7 +3,7 @@
 // clock are the original arcade pictures, filled in on the canvas.
 import { Terrain } from './terrain.js';
 import { AI } from './ai.js';
-import { ITEMS, POWER_SHOT, HEAL, itemIcon } from './items.js';
+import { ITEMS, POWER_SHOT, HEAL } from './items.js';
 
 export const WORLD_H = 480;
 export const GRAVITY = 270;
@@ -78,8 +78,8 @@ class Tank {
 export class Game {
   // players: [{ name, tank (def from tanks.js), cpu: null | 'easy' | 'normal' | 'hard' }]
   // sprites: id -> { img, frames } for everything the match draws.
-  constructor({ canvas, manifest, sprites, audio, map, players, onEnd, onTurn = () => {} }) {
-    Object.assign(this, { canvas, manifest, sprites, audio, onEnd, onTurn });
+  constructor({ canvas, manifest, sprites, itemIcons = {}, audio, map, players, onEnd, onTurn = () => {} }) {
+    Object.assign(this, { canvas, manifest, sprites, itemIcons, audio, onEnd, onTurn });
     this.ctx = canvas.getContext('2d');
     this.map = map;
     this.terrain = Terrain.fromImage(sprites[map.ground].img, WORLD_H);
@@ -981,18 +981,17 @@ export class Game {
     // FIRE1 / FIRE2: the chosen attack is lit.
     if (t.weapon === 0) rect(Xt, 87, 14, 10, 11, '#ffd84a'); else rect(Xt, 79, 34, 10, 11, '#ffd84a');
     // Items: icon, how many are left; the ones used this turn glow.
-    this.itemIcons ??= {};
-    const sprites = { shell: this.sprites[this.manifest.shells.carrot], tank: this.sprites[this.manifest.tanks[t.def.id].idle[2]] };
     ITEMS.forEach((item, i) => {
       // Slots are counted in the rebuilt panel (slots 2-5 are copies), not in the picture.
       const sx = x0 + (SLOT_X + i * SLOT_PITCH) * kx, sy = py + 8 * k, sw = SLOT_W * kx, sh = 17 * k;
-      const icon = (this.itemIcons[`${item.id}-${t.def.id}`] ??= itemIcon(item, sprites));
+      const icon = this.itemIcons[item.id];
       const used = t === this.active && this.turnItems.has(item.id);
-      ctx.save();
-      if (!t.items[item.id] && !used) ctx.globalAlpha = 0.3;
-      ctx.imageSmoothingEnabled = true;
-      ctx.drawImage(icon, sx + 1, sy + 1, sw - 2, sh - 2);
-      ctx.restore();
+      if (icon) {
+        ctx.save();
+        if (!t.items[item.id] && !used) ctx.globalAlpha = 0.3;
+        this.drawCrisp(icon, (sh - 2) / icon.height, 0, 0, icon.width, icon.height, sx + 1, sy + 1, sw - 2, sh - 2);
+        ctx.restore();
+      }
       if (used) { ctx.strokeStyle = '#ffd84a'; ctx.lineWidth = 2; ctx.strokeRect(sx, sy, sw, sh); }
       ctx.font = pfont(5.5); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
       ctx.lineWidth = 3; ctx.strokeStyle = '#000';

@@ -8,14 +8,15 @@ import path from 'node:path';
 import { kindOf, readIcs, encodePng } from './f2-formats.mjs';
 import { TANKS, SHELLS, BLASTS, MAPS, PANELS, TIMER_DIGITS } from './f2-names.mjs';
 
-const src = path.resolve(process.argv[2] || '../taebo-games-fortress2blue-assets', 'Resource');
+const root = path.resolve(process.argv[2] || '../taebo-games-fortress2blue-assets');
+const src = path.join(root, 'Resource');
 const out = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../assets/f2');
 if (!fs.existsSync(src)) {
   console.error(`Fortress resources not found at ${src}`);
   process.exit(1);
 }
 fs.rmSync(out, { recursive: true, force: true });
-for (const dir of ['sprites', 'sfx', 'music']) fs.mkdirSync(path.join(out, dir), { recursive: true });
+for (const dir of ['sprites', 'sfx', 'music', 'items']) fs.mkdirSync(path.join(out, dir), { recursive: true });
 
 // Every sprite becomes one PNG with its frames side by side, top-aligned. The manifest keeps
 // each frame as [x, width, height, anchorX, anchorY, delayMs]; the anchor is the point that
@@ -35,7 +36,7 @@ function writeStrip(ics, file) {
   return frames;
 }
 
-const manifest = { sprites: {}, sfx: [], music: [], tanks: TANKS, shells: SHELLS, blasts: BLASTS, maps: MAPS, panels: PANELS, timer: TIMER_DIGITS };
+const manifest = { sprites: {}, sfx: [], music: [], items: [], tanks: TANKS, shells: SHELLS, blasts: BLASTS, maps: MAPS, panels: PANELS, timer: TIMER_DIGITS };
 const counts = { ics: 0, wav: 0, ogg: 0, skipped: 0 };
 for (const id of fs.readdirSync(src).sort()) {
   const buf = fs.readFileSync(path.join(src, id));
@@ -47,6 +48,16 @@ for (const id of fs.readdirSync(src).sort()) {
   counts[kind]++;
 }
 
+// Item icons: the Worms clone's pictures, kept in the data repo (Worms/items/<id>.png).
+const items = path.join(root, 'Worms', 'items');
+if (fs.existsSync(items)) {
+  for (const f of fs.readdirSync(items).sort()) {
+    if (!f.endsWith('.png')) continue;
+    fs.copyFileSync(path.join(items, f), path.join(out, 'items', f));
+    manifest.items.push(f.replace(/\.png$/, ''));
+  }
+}
+
 // Fail loudly if the name table points at something that is not there.
 const named = [...Object.values(TANKS).flatMap((t) => Object.values(t).flat()), ...Object.values(SHELLS), ...Object.values(BLASTS), ...MAPS.flatMap((m) => [m.ground, m.back]), ...PANELS, ...TIMER_DIGITS];
 const missing = named.filter((id) => !manifest.sprites[id]);
@@ -56,4 +67,4 @@ if (missing.length) {
 }
 
 fs.writeFileSync(path.join(out, 'manifest.json'), JSON.stringify(manifest));
-console.log(`Wrote ${counts.ics} sprites, ${counts.wav} sounds, ${counts.ogg} music files to ${out}` + (counts.skipped ? ` (${counts.skipped} unknown files skipped)` : ''));
+console.log(`Wrote ${counts.ics} sprites, ${counts.wav} sounds, ${counts.ogg} music files, ${manifest.items.length} item icons to ${out}` + (counts.skipped ? ` (${counts.skipped} unknown files skipped)` : ''));

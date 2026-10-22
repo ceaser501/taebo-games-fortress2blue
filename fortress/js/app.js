@@ -1,4 +1,4 @@
-import { loadManifest, Sprites, sfxUrl } from './assets.js';
+import { loadManifest, loadImage, Sprites, sfxUrl, itemUrl } from './assets.js';
 import { Audio } from './audio.js';
 import { Game, DT } from './game.js';
 import { Music } from './music.js';
@@ -13,6 +13,7 @@ let audio;
 let music = null;
 let game = null;
 let lastSetup = null;
+let itemIcons = null;
 let myTank = 'cannon';
 
 function option(select, value, label) {
@@ -136,9 +137,10 @@ async function start(setup = pickSetup()) {
   $('start').textContent = '불러오는 중…';
   await prepareAudio();
   const loaded = await sprites.loadAll(spriteIds(setup));
+  itemIcons ??= Object.fromEntries(await Promise.all(manifest.items.map(async (id) => [id, await loadImage(itemUrl(id))])));
   lastSetup = setup;
   const match = new Game({
-    canvas, manifest, sprites: loaded, audio, map: setup.map,
+    canvas, manifest, sprites: loaded, itemIcons, audio, map: setup.map,
     players: setup.players.map((p) => ({ ...p, tank: tankById(p.tank) })),
     // The result comes a moment after the last blast; ignore it if the player already left.
     onEnd: (winner) => { if (game === match) showEnd(winner); },

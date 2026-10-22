@@ -39,4 +39,5 @@ export class Sprites {
 }
 
 export const sfxUrl = (id) => `${BASE}sfx/${id}.wav`;
+export const itemUrl = (id) => `${BASE}items/${id}.png`;
 export const musicUrl = (id) => `${BASE}music/${id}.ogg`;
