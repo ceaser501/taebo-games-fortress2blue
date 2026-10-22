@@ -781,6 +781,7 @@ if (/KAKAOTALK/i.test(ua)) {
   if (!tried) openOutside();
 }
 
+$('build').textContent = `버전 ${typeof BUILD_ID === 'undefined' ? 'dev' : BUILD_ID}`;
 init();
 
 // For automated checks.

@@ -1,4 +1,10 @@
 const path = require('path');
+const { execSync } = require('child_process');
+const webpack = require('webpack');
+
+// Shown at the bottom of the menu, so a deployed page tells which code it runs.
+let build = 'dev';
+try { build = execSync('git rev-parse --short HEAD').toString().trim(); } catch { /* not a git checkout */ }
 
 // The bundle lands in fortress/js/app.js, next to the page that loads it.
 module.exports = {
@@ -11,4 +17,5 @@ module.exports = {
     filename: '[name]/js/app.js',
     chunkFilename: 'fortress/js/chunk-[id].js',
   },
+  plugins: [new webpack.DefinePlugin({ BUILD_ID: JSON.stringify(build) })],
 };

@@ -557,3 +557,9 @@ body:not(.touch) .touch-help {
 #net-banner[hidden] {
   display: none;
 }
+
+#build {
+  font-size: 11px !important;
+  color: #6b7a96 !important;
+  text-align: right;
+}
