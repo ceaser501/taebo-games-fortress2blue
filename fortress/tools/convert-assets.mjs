@@ -6,7 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { kindOf, readIcs, encodePng } from './f2-formats.mjs';
-import { TANKS, MAPS, PANELS, TIMER_DIGITS } from './f2-names.mjs';
+import { TANKS, SHELLS, BLASTS, MAPS, PANELS, TIMER_DIGITS } from './f2-names.mjs';
 
 const src = path.resolve(process.argv[2] || '../taebo-games-fortress2blue-assets', 'Resource');
 const out = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../assets/f2');
@@ -35,7 +35,7 @@ function writeStrip(ics, file) {
   return frames;
 }
 
-const manifest = { sprites: {}, sfx: [], music: [], tanks: TANKS, maps: MAPS, panels: PANELS, timer: TIMER_DIGITS };
+const manifest = { sprites: {}, sfx: [], music: [], tanks: TANKS, shells: SHELLS, blasts: BLASTS, maps: MAPS, panels: PANELS, timer: TIMER_DIGITS };
 const counts = { ics: 0, wav: 0, ogg: 0, skipped: 0 };
 for (const id of fs.readdirSync(src).sort()) {
   const buf = fs.readFileSync(path.join(src, id));
@@ -48,7 +48,7 @@ for (const id of fs.readdirSync(src).sort()) {
 }
 
 // Fail loudly if the name table points at something that is not there.
-const named = [...Object.values(TANKS).flatMap((t) => Object.values(t).flat()), ...MAPS.flatMap((m) => [m.ground, m.back]), ...PANELS, ...TIMER_DIGITS];
+const named = [...Object.values(TANKS).flatMap((t) => Object.values(t).flat()), ...Object.values(SHELLS), ...Object.values(BLASTS), ...MAPS.flatMap((m) => [m.ground, m.back]), ...PANELS, ...TIMER_DIGITS];
 const missing = named.filter((id) => !manifest.sprites[id]);
 if (missing.length) {
   console.error(`Named sprites missing from the resources: ${missing.join(', ')}`);

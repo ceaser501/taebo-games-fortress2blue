@@ -1,12 +1,14 @@
 {
-  "short_name": "",
-  "name": "",
+  "short_name": "Fortress",
+  "name": "Fortress 2 Blue",
   "icons": [{
     "src": "icon.png",
     "type": "image/png",
     "sizes": "192x192"
   }],
-  "start_url": "/?utm_source=homescreen",
-  "background_color": "#fafafa",
-  "theme_color": "#fafafa"
+  "start_url": "/fortress/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#05070c",
+  "theme_color": "#05070c"
 }

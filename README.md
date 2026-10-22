@@ -6,6 +6,17 @@
   (안드로이드판 APK의 `assets/Resource.zip`을 푼 `Resource/` 폴더)
 - 구조는 `ceaser501/taebo-games-worms`를 따릅니다.
 
+## 실행
+
+```bash
+npm install
+npm run fortress:assets -- ../taebo-games-fortress2blue-assets   # 원본 데이터 변환 (최초 1회)
+npm start                                                         # 개발 서버
+npm run build                                                     # dist/ 로 빌드
+```
+
+게임 규칙·조작은 [`fortress/README.md`](fortress/README.md)에 있습니다.
+
 ## 원본 데이터 변환
 
 ```bash

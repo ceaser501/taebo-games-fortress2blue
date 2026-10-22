@@ -25,6 +25,15 @@ export const TANKS = {
   },
 };
 
+// Shells, pointing right (rotated in flight) or spinning in place.
+export const SHELLS = {
+  ball: 'FDE63E74', fireball: 'FDE84F04', carrot: 'FDE7799C', rock: 'FDE7EEA0',
+  fireRock: 'FDE832D4', arrow: 'FDE8E598', bolt: 'FDE95598',
+};
+
+// Explosions by size, and the splash when something drops into the water.
+export const BLASTS = { small: 'FE46F67C', medium: 'FE451404', large: 'FE49711C', splash: 'FE5A5CA8' };
+
 // Maps: the destructible ground (1200 px wide, transparent = air) and the picture behind it.
 // The pairing follows the map select previews; it is a best guess where they are ambiguous.
 export const MAPS = [
