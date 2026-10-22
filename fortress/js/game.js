@@ -790,7 +790,6 @@ export class Game {
       // Picture column -> screen x, for the top rows (dial, items, wind) and the bars.
       Xt: (u) => x0 + mapColumn(pieces.top, u) * kx,
       Xb: (u) => x0 + mapColumn(pieces.bottom, u) * kx,
-      left: leftW ? { x: 0, y, w: leftW, h: panelH } : null,
       right: { x: W - rightW, y, w: rightW, h: panelH },
     };
   }
@@ -867,7 +866,7 @@ export class Game {
     const t = this.panelTank;
     if (!t) return;
     const s = this.sprites[this.manifest.panels[PLAYERS[t.player].panel]];
-    const { k, kx, x0, y: py, width, pieces, panelW, Xt, Xb, left, right } = this.panelLayout();
+    const { k, kx, x0, y: py, width, pieces, panelW, Xt, Xb, right } = this.panelLayout();
     if (s) this.drawCrisp(this.composedPanel(s.img, width, pieces), k, 0, 0, width, 56, x0, py, panelW, 56 * k);
     const rect = (X, x, y, w, h, col) => { ctx.fillStyle = col; ctx.fillRect(X(x), py + y * k, X(x + w) - X(x), h * k); };
     const font = (size) => `bold ${Math.round(size * k)}px "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans CJK KR", sans-serif`;
@@ -936,13 +935,16 @@ export class Game {
     rect(Xb, 290, 30, 23, 15, mine ? t.color : '#20242c');
     ctx.font = font(6); ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
     ctx.fillText(mine ? 'MY' : this.state === 'aim' ? '상대' : '', Xb(301.5), py + 37.5 * k);
-    if (left) this.renderBox(left, k);
-    this.renderBox(right, k);
-    if (!this.touch) this.renderChat(right, k);
+    // Touch screens leave the corners open so the field shows around the arrow pad and the
+    // fire buttons; a computer gets the chat box.
+    if (!this.touch) {
+      this.renderBox(right, k);
+      this.renderChat(right, k);
+    }
     if (!mine) { ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(x0, py, panelW, 56 * k); }
   }
 
-  // A box at the end of the bar, in the same blue metal as the panel.
+  // The chat box at the right end of the bar, in the same blue metal as the panel.
   renderBox(b, k) {
     const { ctx } = this;
     const g = ctx.createLinearGradient(0, b.y, 0, b.y + b.h);
