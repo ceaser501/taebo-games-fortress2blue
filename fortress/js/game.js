@@ -37,6 +37,9 @@ const PANEL_MIN_W = 129 + 4 * SLOT_PITCH + 23 + 40 + 24 + 29 + 2;
 const PAD_SIZE = 3 * 44 + 2 * 2;
 // Width of the fire button cluster on touch screens (#actions in style.css).
 const ACTIONS_W = 130;
+// The fire button is narrower at the bottom than the pad, so the panel sits this much right of
+// centre to leave even gaps; 1번 still clears the panel's corner.
+const PANEL_NUDGE = 18;
 
 // Player 1 uses the red panel, player 2 the blue one.
 export const PLAYERS = [
@@ -492,10 +495,10 @@ export class Game {
     this.touch = document.body.classList.contains('touch');
     // The bottom bar: [arrow pad | panel | fire button] on touch screens, [panel | chat] on a
     // computer. The pad and the fire cluster stand in the corners like in Worms.
-    const leftW = this.touch ? PAD_SIZE + 16 : 0;
+    const leftW = this.touch ? PAD_SIZE + 16 + PANEL_NUDGE : 0;
     // On touch screens the right box is as wide as the fire cluster (#actions plus its margin),
     // so no button covers the panel.
-    const rightW = this.touch ? ACTIONS_W + 22 : Math.round(clamp(W * 0.26, 220, 420));
+    const rightW = this.touch ? ACTIONS_W + 22 - PANEL_NUDGE : Math.round(clamp(W * 0.26, 220, 420));
     this.panelScale = clamp(Math.min((W - leftW - rightW) / (PANEL_MIN_W + 30), (H * (this.touch ? 0.21 : 0.16)) / 56), 1, 2);
     this.panelH = Math.round(56 * this.panelScale);
     this.bar = { leftW, rightW };
