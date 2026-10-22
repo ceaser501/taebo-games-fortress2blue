@@ -32,8 +32,8 @@ export const TANKS = [
   {
     id: 'cannon', name: '캐논', defence: 3, movement: 3, angle: [0, 90],
     weapons: [
-      { name: '빨콩', shell: 'redBean', spin: true, speed: 1, gravity: 1, wind: 1, radius: 26, damage: 32, blast: 'medium', sfx: 'boom' },
-      { name: '검콩', shell: 'ball', spin: true, speed: 0.95, gravity: 1.05, wind: 0.8, radius: 34, damage: 40, blast: 'large', sfx: 'boom' },
+      { name: '검콩', shell: 'ball', spin: true, speed: 1, gravity: 1, wind: 1, radius: 26, damage: 32, blast: 'medium', sfx: 'boom' },
+      { name: '빨콩', shell: 'redBean', spin: true, speed: 0.95, gravity: 1.05, wind: 0.8, radius: 34, damage: 40, blast: 'large', sfx: 'boom' },
     ],
   },
   {
