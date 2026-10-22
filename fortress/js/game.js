@@ -28,6 +28,8 @@ const VIEW_W = 820, VIEW_H = 340;
 // item slots and WIND / DELAY, the rows below the Energy / Power / Move bars.
 const PANEL_SPLIT = 26;
 const SLOT_X = 107, SLOT_PITCH = 22, SLOT_W = 18;
+// The WIND bar after reshapeWindBox(): from the end of the WIND label to column 306.
+const WIND_LEFT = 259, WIND_CENTRE = 283;
 // Columns in the top rows without the stretchy ones; the panel is never narrower.
 const PANEL_MIN_W = 129 + 4 * SLOT_PITCH + 23 + 40 + 24 + 29 + 2;
 // Height of the arrow pad on touch screens (#pad in style.css).
@@ -842,11 +844,12 @@ export class Game {
   }
 
   // The panel picture rebuilt `width` columns wide (cached per picture and width).
-  composedPanel(img, width, pieces) {
+  composedPanel(source, width, pieces) {
     this.panelCache ??= new WeakMap();
-    let byWidth = this.panelCache.get(img);
-    if (!byWidth) this.panelCache.set(img, (byWidth = {}));
+    let byWidth = this.panelCache.get(source);
+    if (!byWidth) this.panelCache.set(source, (byWidth = {}));
     if (byWidth[width]) return byWidth[width];
+    const img = (byWidth.reshaped ??= reshapeWindBox(source));
     const c = document.createElement('canvas');
     c.width = width; c.height = 56;
     const x = c.getContext('2d');
@@ -891,14 +894,19 @@ export class Game {
       ctx.beginPath(); ctx.moveTo(mx, my + 1); ctx.lineTo(mx - 5, my - 7); ctx.lineTo(mx + 5, my - 7); ctx.closePath(); ctx.fill(); ctx.stroke();
     }
     rect(Xb, 140, 47, 140 * (t === this.active ? this.move / MOVE_MAX : 1), 6, '#ffb52e');
-    // Wind grows from the centre mark of the WIND bar; its strength sits in the DELAY bar.
+    // Wind grows from the centre mark of the (thick) WIND bar, with its strength at the end.
     const wind = this.wind ?? 0;
-    const wc = Xt(283), wl = Xt(259), wr = Xt(306);
+    const wc = Xt(WIND_CENTRE), wl = Xt(WIND_LEFT), wr = Xt(306), wy = py + 17 * k, wh = 5 * k;
     ctx.fillStyle = '#7fd0ff';
-    if (wind < 0) ctx.fillRect(wc + (wc - wl) * wind, py + 8 * k, (wl - wc) * wind, 4 * k);
-    else if (wind > 0) ctx.fillRect(wc, py + 8 * k, (wr - wc) * wind, 4 * k);
-    ctx.font = font(7); ctx.fillStyle = '#cfe8ff'; ctx.textAlign = 'right';
-    ctx.fillText(`${wind < 0 ? '◀ ' : wind > 0 ? '▶ ' : ''}${Math.round(Math.abs(wind) * 10)}`, Xt(305), py + 19.5 * k);
+    if (wind < 0) ctx.fillRect(wc + (wc - wl) * wind, wy, (wl - wc) * wind, wh);
+    else if (wind > 0) ctx.fillRect(wc, wy, (wr - wc) * wind, wh);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(Math.round(wc), wy - k, Math.max(1, k / 2), wh + 2 * k);
+    ctx.font = font(6.5); ctx.textAlign = 'right'; ctx.lineWidth = 3; ctx.strokeStyle = '#000';
+    const windText = `${wind < 0 ? '◀ ' : wind > 0 ? '▶ ' : ''}${Math.round(Math.abs(wind) * 10)}`;
+    ctx.strokeText(windText, Xt(305), py + 19.5 * k);
+    ctx.fillStyle = '#cfe8ff';
+    ctx.fillText(windText, Xt(305), py + 19.5 * k);
     // Angle dial: the needle points the way the tank aims.
     {
       const cx = Xt(39.5), cy = py + 30.5 * k, r = 19 * k, a = (t.aim * Math.PI) / 180;
@@ -1079,4 +1087,23 @@ function mapColumn(pieces, u) {
     dx += w === 1 ? n : w * n;
   }
   return dx;
+}
+
+// The WIND / DELAY box without the DELAY line: the box loses the height of the thin WIND row
+// and the thick DELAY bar becomes the wind bar, with the WIND label moved into it. The turn
+// clock at the top already shows the time.
+function reshapeWindBox(img) {
+  const c = document.createElement('canvas');
+  c.width = img.width; c.height = img.height;
+  const x = c.getContext('2d');
+  x.drawImage(img, 0, 0);
+  const x0 = 225, w = img.width - x0;
+  x.clearRect(x0, 0, w, 14);
+  // Top outline and highlight, moved down onto the DELAY bar.
+  x.drawImage(img, x0, 4, w, 2, x0, 12, w, 2);
+  // Empty the bar and put the WIND label at its left end.
+  x.fillStyle = '#333333';
+  x.fillRect(231, 16, 76, 7);
+  x.drawImage(img, 230, 7, 27, 6, 231, 16, 27, 6);
+  return c;
 }
