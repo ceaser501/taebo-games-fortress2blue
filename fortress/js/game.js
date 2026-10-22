@@ -41,12 +41,10 @@ const WIND_LEFT = 259, WIND_CENTRE = 283;
 const PANEL_FIXED = ITEMS_X + 5 + 40 + 24 + 29;
 const PANEL_MIN_W = PANEL_FIXED + ITEMS_MIN + 12;
 // Height of the arrow pad on touch screens (#pad in style.css).
-const PAD_SIZE = 3 * 44 + 2 * 2;
-// Width of the fire button cluster on touch screens (#actions in style.css).
-const ACTIONS_W = 130;
-// The fire button is narrower at the bottom than the pad, so the panel sits this much right of
-// centre to leave even gaps; 1번 still clears the panel's corner.
-const PANEL_NUDGE = 18;
+const PAD_SIZE = 3 * 38 + 2 * 2;
+// Room kept free at each side of the panel on touch screens, for the arrow pad on the left and
+// the fire cluster (#actions, scaled down) on the right; the panel sits centred between.
+const SIDE_W = 126;
 
 // Player 1 uses the red panel, player 2 the blue one.
 export const PLAYERS = [
@@ -568,11 +566,11 @@ export class Game {
     this.touch = document.body.classList.contains('touch');
     // The bottom bar: [arrow pad | panel | fire button] on touch screens, [panel | chat] on a
     // computer. The pad and the fire cluster stand in the corners like in Worms.
-    const leftW = this.touch ? PAD_SIZE + 16 + PANEL_NUDGE : 0;
+    const leftW = this.touch ? SIDE_W : 0;
     // On touch screens the right box is as wide as the fire cluster (#actions plus its margin),
     // so no button covers the panel.
-    const rightW = this.touch ? ACTIONS_W + 22 - PANEL_NUDGE : Math.round(clamp(W * 0.26, 220, 420));
-    this.panelScale = clamp(Math.min((W - leftW - rightW) / (PANEL_MIN_W + 30), (H * (this.touch ? 0.21 : 0.16)) / 56), 1, 2);
+    const rightW = this.touch ? SIDE_W : Math.round(clamp(W * 0.26, 220, 420));
+    this.panelScale = clamp(Math.min((W - leftW - rightW) / PANEL_MIN_W, (H * (this.touch ? 0.29 : 0.16)) / 56), 1, 2.4);
     this.panelH = Math.round(56 * this.panelScale);
     this.bar = { leftW, rightW };
     // The touch buttons sit in the boxes at both ends of the bar.
@@ -1138,21 +1136,6 @@ export class Game {
     });
     this.renderItems(t, x0 + ITEMS_X * kx, py + ITEMS_TOP * k, pieces.items * kx, (26.5 - ITEMS_TOP) * k, k);
     ctx.textBaseline = 'middle';
-    // TURN: lit in the player's colour when it is their turn.
-    {
-      const tx = Xb(289.5), ty = py + 29.5 * k, tw = Xb(313.5) - tx, th = 16 * k;
-      ctx.beginPath(); ctx.roundRect(tx, ty, tw, th, 2.5 * k);
-      const g = ctx.createLinearGradient(0, ty, 0, ty + th);
-      if (mine) { g.addColorStop(0, '#ff7a6a'); g.addColorStop(1, '#c8261c'); } else { g.addColorStop(0, '#2c3346'); g.addColorStop(1, '#151a26'); }
-      ctx.fillStyle = g; ctx.fill();
-      ctx.lineWidth = Math.max(1, 0.6 * k); ctx.strokeStyle = mine ? '#ffd0a0' : '#000'; ctx.stroke();
-      ctx.save();
-      ctx.font = font(Math.round(6 * k), 900); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = k;
-      ctx.fillText(mine ? 'MY' : this.state === 'aim' ? '상대' : '', tx + tw / 2, ty + th / 2 + 0.3 * k);
-      ctx.font = font(Math.round(4 * k), 900); ctx.fillStyle = '#c9d6f0';
-      ctx.restore();
-    }
     // Touch screens leave the corners open so the field shows around the arrow pad and the
     // fire buttons; a computer gets the chat box.
     if (!this.touch) this.renderChat(right, k);
@@ -1468,7 +1451,8 @@ function itemsWidth(width) {
 //   top:    dial and FIRE, an empty frame stretched under the item tray, the frame end, then the
 //           WIND box widened on both sides of the wind centre (the small window between the item
 //           slots and WIND is left out)
-//   bottom: the bars, widened at column 210
+//   bottom: the bars, widened at column 210, then the frame end (the TURN box is left out:
+//           the banner and the lit panel tell whose turn it is)
 function panelPieces(width) {
   const items = itemsWidth(width);
   const room = width - PANEL_FIXED - items;
@@ -1476,7 +1460,7 @@ function panelPieces(width) {
   return {
     items,
     top: [[0, ITEMS_X, 1], [148, 149, items], [191, 196, 1], [225, 265, 1], [265, 266, a], [266, 290, 1], [290, 291, b], [291, 320, 1]],
-    bottom: [[0, 210, 1], [210, 211, width - 319], [211, 320, 1]],
+    bottom: [[0, 210, 1], [210, 211, width - 291], [211, 286, 1], [314, 320, 1]],
   };
 }
 

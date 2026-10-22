@@ -194,11 +194,11 @@ body:not(.touch) .touch-help {
 
 #pad {
   position: fixed;
-  left: max(12px, env(safe-area-inset-left, 0px));
+  left: max(6px, env(safe-area-inset-left, 0px));
   bottom: 4px;
   display: grid;
-  grid-template-columns: repeat(3, 44px);
-  grid-template-rows: repeat(3, 44px);
+  grid-template-columns: repeat(3, 38px);
+  grid-template-rows: repeat(3, 38px);
   gap: 2px;
   opacity: 0.85;
 }
@@ -214,11 +214,14 @@ body:not(.touch) .touch-help {
 
 #actions {
   position: fixed;
-  right: max(12px, env(safe-area-inset-right, 0px));
-  bottom: calc((var(--panel-h, 78px) - 74px) / 2);
+  right: max(6px, env(safe-area-inset-right, 0px));
+  bottom: 6px;
   width: 130px;
   height: 140px;
   pointer-events: none;
+  /* A little smaller than in Worms, to leave the panel more room. */
+  transform: scale(0.78);
+  transform-origin: right bottom;
 }
 
 #actions button {
