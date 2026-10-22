@@ -172,7 +172,7 @@ function setupMusicButtons() {
 async function prepareAudio() {
   if (!audio) {
     audio = new Audio();
-    await audio.load();
+    await audio.load([...new Set(TANKS.flatMap((t) => t.weapons.flatMap((w) => [w.launchSfx, w.hitSfx])))]);
   }
   audio.resume();
 }

@@ -23,6 +23,8 @@ const FALL_SAFE = 24;
 const FALL_DAMAGE = 0.6;
 const TANK_R = 13;
 const AFTERMATH = 0.6;
+// Guided shells start turning after HOMING_DELAY seconds, at most HOMING_TURN rad/s.
+const HOMING_DELAY = 0.6, HOMING_TURN = 2.6;
 // Water fills everything below the bottom of the map (like Worms); its surface sits on the top
 // edge of the bottom bar and a tank that drops in is out.
 export const WATER_Y = WORLD_H;
@@ -432,7 +434,7 @@ export class Game {
       def, owner: t, x: t.cx + ux * 12, y: t.cy + uy * 12, vx: ux * speed, vy: uy * speed,
       age: 0, bounces: def.bounce ?? 0, mult,
     });
-    this.audio.launch(def.sfx);
+    this.audio.launch(def.sfx, def.launchSfx);
   }
 
   // The flight of every shell, shared with the computer player's aiming.
@@ -444,6 +446,7 @@ export class Game {
   updateProjectile(p) {
     p.age += DT;
     Game.stepShell(p, this.wind);
+    if (p.def.homing) this.steer(p);
     const t = this.terrain;
     const steps = Math.ceil(Math.max(Math.abs(p.vx), Math.abs(p.vy)) * DT) || 1;
     for (let i = 0; i < steps; i++) {
@@ -469,12 +472,29 @@ export class Game {
     }
   }
 
+  // Guided shells: after a moment in the air they turn toward the nearest enemy, at most
+  // HOMING_TURN radians a second, keeping their speed.
+  steer(p) {
+    if (p.age < HOMING_DELAY) return;
+    const target = this.tanks.filter((t) => !t.dead && t !== p.owner)
+      .sort((a, b) => Math.hypot(a.cx - p.x, a.cy - p.y) - Math.hypot(b.cx - p.x, b.cy - p.y))[0];
+    if (!target) return;
+    const speed = Math.hypot(p.vx, p.vy);
+    const now = Math.atan2(p.vy, p.vx), want = Math.atan2(target.cy - p.y, target.cx - p.x);
+    let turn = want - now;
+    while (turn > Math.PI) turn -= Math.PI * 2;
+    while (turn < -Math.PI) turn += Math.PI * 2;
+    const a = now + clamp(turn, -HOMING_TURN * DT, HOMING_TURN * DT);
+    p.vx = Math.cos(a) * speed;
+    p.vy = Math.sin(a) * speed;
+  }
+
   detonate(p) {
     p.dead = true;
     const { radius, damage, blast } = p.def;
     this.crater(p.x, p.y, radius);
     this.addBlast(blast, p.x, p.y);
-    this.audio.explosion(blast);
+    this.audio.explosion(blast, p.def.hitSfx);
     this.camera.shake = Math.min(10, radius / 4);
     for (const t of this.tanks) {
       if (t.dead) continue;

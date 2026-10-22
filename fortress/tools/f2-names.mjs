@@ -73,12 +73,13 @@ export const SHELLS = {
   // Round shells: their frames are a little animation, drawn as they are.
   ball: 'FDE63E74', redBean: 'FDE644BC', rock: 'FDE7EEA0', fireRock: 'FDE84F04', grenade: 'FDED4BE4',
   mine: 'FDED55CC', water: 'FDF20578', gas: 'FDF2575C', swirl: 'FDF27C80', ring: 'FDF294D4',
-  // Long shells: the original draws each in four angles; these are the level ones, which the
+  // Every weapon's shells as the original's table lists them (eight per weapon, one per 45°).
+  // Long shells: the original draws each in several angles; these are the level ones, which the
   // game turns along the flight (the anchor marks the nose, so ones drawn facing left work too).
-  shell: 'FDE648E4', greenShell: 'FDE7799C', arrow: 'FDE8E598', poisonArrow: 'FDE976B8',
+  shell: 'FDE648E4', greenShell: 'FDE7799C', arrow: 'FDE8E598', poisonArrow: 'FDE95598',
   dukeShell: 'FDE997D8', energy: 'FDEB49B8', comet: 'FDEB9A68', redMissile: 'FDED59C8',
   guided: 'FDEE89DC', rocket: 'FDF00EF8', rocketSmall: 'FDF13E58', superMissile: 'FDF2A590',
-  superGuided: 'FDF40F20', laser: 'FDF48368',
+  superGuided: 'FDF40F20', dukeBomb: 'FDEA86D8', laser: 'FEEEA68C', laserBall: 'FEEF0B2C',
 };
 
 // Name plates (white, as on the original game screens) and the character select screen with

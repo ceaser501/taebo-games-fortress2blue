@@ -13,7 +13,8 @@
 //   burst   shells fired one after another, `gap` seconds apart
 //   bounce  times it bounces off the ground before going off
 //   blast   explosion sprite size (small / medium / large)
-//   sfx     launch sound in audio.js
+//   homing  turns toward the nearest enemy once it is in flight (guided missiles)
+//   sfx     fallback launch sound in audio.js (launchSfx / hitSfx below are the original's)
 export const TANKS = [
   {
     id: 'catapult', name: '카타펄트', defence: 3, movement: 2, angle: [20, 80],
@@ -47,14 +48,14 @@ export const TANKS = [
     id: 'duke', name: '듀크', defence: 5, movement: 1, angle: [30, 90],
     weapons: [
       { name: '탱크포', shell: 'dukeShell', speed: 0.95, gravity: 1.05, wind: 0.8, radius: 30, damage: 36, blast: 'large', sfx: 'boom' },
-      { name: '독가스탄', shell: 'gas', spin: true, speed: 0.9, gravity: 1.05, wind: 1, radius: 40, damage: 30, blast: 'large', sfx: 'throw' },
+      { name: '독가스탄', shell: 'dukeBomb', speed: 0.9, gravity: 1.05, wind: 1, radius: 40, damage: 30, blast: 'large', sfx: 'throw' },
     ],
   },
   {
     id: 'missile', name: '미사일', defence: 3, movement: 2, angle: [20, 45],
     weapons: [
       { name: '빨간 미사일', shell: 'redMissile', speed: 1.05, gravity: 1, wind: 0.8, radius: 30, damage: 38, blast: 'large', sfx: 'missile' },
-      { name: '녹색 유도탄', shell: 'guided', speed: 1.05, gravity: 1, wind: 0.6, radius: 18, damage: 24, blast: 'small', sfx: 'missile' },
+      { name: '녹색 유도탄', shell: 'guided', homing: true, speed: 1.05, gravity: 1, wind: 0.6, radius: 18, damage: 24, blast: 'small', sfx: 'missile' },
     ],
   },
   {
@@ -68,7 +69,7 @@ export const TANKS = [
     id: 'laser', name: '레이저', defence: 2, movement: 3, angle: [0, 60],
     weapons: [
       { name: '레이저탄', shell: 'laser', speed: 1.2, gravity: 0.5, wind: 0.2, radius: 14, damage: 34, blast: 'small', sfx: 'arrow' },
-      { name: '레이저 연사', shell: 'laser', speed: 1.2, gravity: 0.5, wind: 0.2, radius: 12, damage: 18, blast: 'small', burst: 2, gap: 0.25, sfx: 'arrow' },
+      { name: '레이저 연사', shell: 'laserBall', spin: true, speed: 1.2, gravity: 0.5, wind: 0.2, radius: 12, damage: 18, blast: 'small', burst: 2, gap: 0.25, sfx: 'arrow' },
     ],
   },
   {
@@ -89,7 +90,7 @@ export const TANKS = [
     id: 'poseidon', name: '포세이돈', defence: 3, movement: 4, angle: [10, 85],
     weapons: [
       { name: '물덩어리', shell: 'water', spin: true, speed: 1, gravity: 1, wind: 1, radius: 30, damage: 30, blast: 'medium', sfx: 'throw' },
-      { name: '큰 물덩어리', shell: 'water', spin: true, speed: 0.92, gravity: 1.05, wind: 1, radius: 40, damage: 36, blast: 'large', sfx: 'throw' },
+      { name: '큰 물덩어리', shell: 'gas', spin: true, speed: 0.92, gravity: 1.05, wind: 1, radius: 40, damage: 36, blast: 'large', sfx: 'throw' },
     ],
   },
   {
@@ -103,10 +104,22 @@ export const TANKS = [
     id: 'super', name: '슈퍼탱크', defence: 5, movement: 4, angle: [0, 90], secret: true,
     weapons: [
       { name: '3연발 미사일', shell: 'superMissile', speed: 1.05, gravity: 1, wind: 0.8, radius: 26, damage: 26, blast: 'large', burst: 3, gap: 0.3, sfx: 'missile' },
-      { name: '9연발 유도탄', shell: 'superGuided', speed: 1.05, gravity: 1, wind: 0.6, radius: 14, damage: 9, blast: 'small', count: 9, spread: 3, sfx: 'missile' },
+      { name: '9연발 유도탄', shell: 'superGuided', homing: true, speed: 1.05, gravity: 1, wind: 0.6, radius: 14, damage: 9, blast: 'small', count: 9, spread: 3, sfx: 'missile' },
     ],
   },
 ];
+
+// Sounds per weapon, from the original's table (tank order as above, 1번 then 2번): the
+// launch sound and the explosion sound, as resource ids (assets/f2/sfx/<id>.wav).
+const LAUNCH = [0x119, 0x119, 0x120, 0x120, 0x121, 0x132, 0x122, 0x133, 0x123, 0x123, 0x124, 0x124, 0x125, 0x134,
+  0x126, 0x135, 0x127, 0x127, 0x128, 0x128, 0x129, 0x129, 0x130, 0x136, 0x131, 0x137];
+const HIT = [0x138, 0x138, 0x139, 0x139, 0x140, 0x140, 0x141, 0x151, 0x142, 0x142, 0x143, 0x143, 0x144, 0x152,
+  0x145, 0x153, 0x146, 0x146, 0x147, 0x147, 0x148, 0x148, 0x149, 0x154, 0x150, 0x155];
+const sfxId = (n) => n.toString(16).padStart(8, '0').toUpperCase();
+TANKS.forEach((t, i) => t.weapons.forEach((w, j) => {
+  w.launchSfx = sfxId(LAUNCH[i * 2 + j]);
+  w.hitSfx = sfxId(HIT[i * 2 + j]);
+}));
 
 // The tanks on the select screen (everything but the secret one).
 export const PICKABLE = TANKS.filter((t) => !t.secret);

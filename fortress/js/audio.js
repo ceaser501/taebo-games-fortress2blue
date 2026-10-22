@@ -36,10 +36,12 @@ export class Audio {
     }
   }
 
-  async load() {
-    await Promise.all(Object.entries(SFX).map(async ([name, id]) => {
-      this.buffers[name] = await this.decode(sfxUrl(id));
-    }));
+  // `ids`: every original sound the tanks use, loaded by resource id as well.
+  async load(ids = []) {
+    await Promise.all([
+      ...Object.entries(SFX).map(async ([name, id]) => { this.buffers[name] = await this.decode(sfxUrl(id)); }),
+      ...ids.map(async (id) => { this.buffers[id] = await this.decode(sfxUrl(id)); }),
+    ]);
   }
 
   play(buffer, gain = 1) {
@@ -91,9 +93,13 @@ export class Audio {
     osc.stop(t + duration);
   }
 
-  launch(kind) { if (!this.play(this.buffers[kind], 0.8)) this.noiseBurst(0.35, 3000, 0.35, 600); }
-  explosion(size) {
-    if (this.play(this.buffers[size], 0.9)) return;
+  // `id`: the weapon's own sound from the original; `kind` / `size` the shared fallback.
+  launch(kind, id) {
+    if (this.play(this.buffers[id], 0.8) || this.play(this.buffers[kind], 0.8)) return;
+    this.noiseBurst(0.35, 3000, 0.35, 600);
+  }
+  explosion(size, id) {
+    if (this.play(this.buffers[id], 0.9) || this.play(this.buffers[size], 0.9)) return;
     const r = { small: 14, medium: 26, large: 38 }[size] ?? 26;
     this.noiseBurst(0.4 + r / 80, 1800, 1.0, 80);
     this.tone(90, 0.4 + r / 120, 0.5, 'sine', 30);
