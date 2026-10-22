@@ -29,7 +29,8 @@ console.log('\n▶ 게임 코드 확인');
 run('git fetch -q origin main');
 const out = (cmd) => execSync(cmd, { cwd: root }).toString().trim();
 const behind = Number(out('git rev-list --count HEAD..origin/main'));
-const dirty = out('git status --porcelain --untracked-files=no');
+// npm on another machine may rewrite package-lock.json; that changes nothing that ships.
+const dirty = out('git status --porcelain --untracked-files=no -- . ":(exclude)package-lock.json"');
 if (behind || dirty) {
   console.error(`\n배포를 멈췄어요. 이 폴더(${root})의 게임 코드가 GitHub 최신이 아니에요.`);
   if (behind) console.error(`- 최신보다 ${behind}개 커밋 뒤에 있어요.`);
