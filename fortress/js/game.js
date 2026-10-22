@@ -33,8 +33,8 @@ const VIEW_W = 910, VIEW_H = 378;
 const PANEL_SPLIT = 26;
 // Item tray: from column ITEMS_X of the rebuilt panel, ITEMS_MIN..ITEMS_MAX columns wide, with
 // the cards reaching ITEMS_TOP rows above the panel. Only the item labels use short names.
-const ITEMS_X = 104, ITEMS_MIN = 120, ITEMS_MAX = 150, ITEMS_TOP = 4;
-const ITEM_LABELS = { dual: '2연발', double: '공격 2배', power: '파워샷', calm: '무풍', heal: '회복', teleport: '순간이동' };
+const ITEMS_X = 104, ITEMS_MIN = 100, ITEMS_MAX = 125, ITEMS_TOP = 4;
+const ITEM_LABELS = { dual: '2연발', double: '공격 2배', power: '파워샷', heal: '회복', teleport: '순간이동' };
 // The WIND bar after reshapeWindBox(): from the end of the WIND label to column 306.
 const WIND_LEFT = 259, WIND_CENTRE = 283;
 // Columns in the top rows without the stretchy ones; the panel is never narrower.
@@ -45,11 +45,14 @@ const PANEL_CUT = 7;
 const DIAL_X = 40, DIAL_Y = 31, DIAL_RX = 32.6, DIAL_RY = 31.5;
 const PANEL_FIXED = ITEMS_X - PANEL_CUT + 5 + 40 + 24 + 18;
 const PANEL_MIN_W = PANEL_FIXED + ITEMS_MIN + 12;
+// Panel width on touch screens, in picture columns: the bars a little longer than the least.
+const TOUCH_PANEL_W = PANEL_MIN_W + 40;
 // Height of the arrow pad on touch screens (#pad in style.css).
 const PAD_SIZE = 3 * 38 + 2 * 2;
-// Room kept free at each side of the panel on touch screens, for the arrow pad on the left and
-// the fire cluster (#actions, scaled down) on the right; the panel sits centred between.
-const SIDE_W = 126;
+// Touch screens: the arrow pad's right edge (6 + 3 * 38 + 2 * 2) and the 1번 button's left edge
+// (#actions scaled to 0.78: 6 + (73 + 48) * 0.78), measured from their sides of the screen. The
+// panel sits centred between them with the same gap on both sides.
+const PAD_RIGHT = 124, FIRE_LEFT = 100, SIDE_GAP = 8;
 
 // Player 1 uses the red panel, player 2 the blue one.
 export const PLAYERS = [
@@ -254,7 +257,6 @@ export class Game {
     this.turnItems.add(id);
     if (id === 'double') this.mult *= 2;
     else if (id === 'power') this.mult *= POWER_SHOT;
-    else if (id === 'calm') this.wind = 0;
     else if (id === 'heal') {
       const gain = Math.min(HEAL, 100 - t.hp);
       t.hp += gain;
@@ -571,11 +573,11 @@ export class Game {
     this.touch = document.body.classList.contains('touch');
     // The bottom bar: [arrow pad | panel | fire button] on touch screens, [panel | chat] on a
     // computer. The pad and the fire cluster stand in the corners like in Worms.
-    const leftW = this.touch ? SIDE_W : 0;
+    const leftW = this.touch ? PAD_RIGHT + SIDE_GAP : 0;
     // On touch screens the right box is as wide as the fire cluster (#actions plus its margin),
     // so no button covers the panel.
-    const rightW = this.touch ? SIDE_W : Math.round(clamp(W * 0.26, 220, 420));
-    this.panelScale = clamp(Math.min((W - leftW - rightW) / PANEL_MIN_W, (H * (this.touch ? 0.29 : 0.16)) / 56), 1, 2.4);
+    const rightW = this.touch ? FIRE_LEFT + SIDE_GAP : Math.round(clamp(W * 0.26, 220, 420));
+    this.panelScale = clamp(Math.min((W - leftW - rightW) / (this.touch ? TOUCH_PANEL_W : PANEL_MIN_W), (H * (this.touch ? 0.29 : 0.16)) / 56), 1, 2.4);
     this.panelH = Math.round(56 * this.panelScale);
     this.bar = { leftW, rightW };
     // The touch buttons sit in the boxes at both ends of the bar.
@@ -908,7 +910,11 @@ export class Game {
   panelLayout() {
     const { W, H, panelScale: k, panelH } = this;
     const { leftW, rightW } = this.bar;
-    const x0 = leftW, panelW = W - leftW - rightW;
+    // On touch screens the panel keeps a set width and sits centred between the arrow pad and
+    // the fire buttons; on a computer it fills the room left of the chat box.
+    const room = W - leftW - rightW;
+    const panelW = this.touch ? Math.min(room, Math.round(TOUCH_PANEL_W * k)) : room;
+    const x0 = leftW + Math.round((room - panelW) / 2);
     const width = Math.max(PANEL_MIN_W, Math.round(panelW / k));
     const pieces = panelPieces(width);
     const kx = panelW / width;

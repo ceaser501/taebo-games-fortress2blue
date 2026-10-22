@@ -4,7 +4,6 @@ export const ITEMS = [
   { id: 'dual', name: '2연발', color: '#ff8a3c', key: 'KeyQ', count: 2, info: '같은 각도·세기로 한 발 더 쏴요' },
   { id: 'double', name: '공격력 2배', color: '#ff5a5a', key: 'KeyW', count: 2, info: '이번 턴 데미지가 2배' },
   { id: 'power', name: '파워샷', color: '#ffd84a', key: 'KeyE', count: 3, info: '더 멀리 날아가고 데미지 1.3배' },
-  { id: 'calm', name: '바람 멈춤', color: '#4fc3ff', key: 'KeyR', count: 2, info: '이번 턴 바람이 없어요' },
   { id: 'heal', name: '체력 회복', color: '#6be06b', key: 'KeyT', count: 1, info: '체력 +40' },
   { id: 'teleport', name: '순간이동', color: '#c58bff', key: 'KeyY', count: 1, info: '원하는 곳을 눌러 이동 (턴 끝)' },
 ];
