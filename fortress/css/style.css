@@ -538,6 +538,7 @@ body:not(.touch) .touch-help {
 #notice {
   margin: 0;
   font-size: 12px;
+}
 
 #net-banner {
   position: fixed;
@@ -563,3 +564,4 @@ body:not(.touch) .touch-help {
   color: #6b7a96 !important;
   text-align: right;
 }
+
