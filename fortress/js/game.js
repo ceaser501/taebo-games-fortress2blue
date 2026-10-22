@@ -39,8 +39,11 @@ const ITEM_LABELS = { dual: '2연발', double: '공격 2배', power: '파워샷'
 const WIND_LEFT = 259, WIND_CENTRE = 283;
 // Columns in the top rows without the stretchy ones; the panel is never narrower.
 // The panel starts at the angle dial's red ring: the frame left of it is cut off.
-const PANEL_CUT = 12;
-const PANEL_FIXED = ITEMS_X - PANEL_CUT + 5 + 40 + 24 + 29;
+const PANEL_CUT = 7;
+// The dial's red ring (centre and radii, in picture columns and rows); left of its centre only
+// the ring is kept, so the panel's left end is round.
+const DIAL_X = 40, DIAL_Y = 31, DIAL_RX = 32.6, DIAL_RY = 31.5;
+const PANEL_FIXED = ITEMS_X - PANEL_CUT + 5 + 40 + 24 + 18;
 const PANEL_MIN_W = PANEL_FIXED + ITEMS_MIN + 12;
 // Height of the arrow pad on touch screens (#pad in style.css).
 const PAD_SIZE = 3 * 38 + 2 * 2;
@@ -1002,6 +1005,16 @@ export class Game {
         for (let i = 0; i < n; i++, dx += w) x.drawImage(img, s0, rows[0], w, rows[1] - rows[0], dx, rows[0], w, rows[1] - rows[0]);
       }
     }
+    // Left end: only the angle dial's round ring, nothing of the frame beside it.
+    const w = Math.ceil(DIAL_X - PANEL_CUT);
+    const { data } = x.getImageData(0, 0, w, 56);
+    for (let yy = 0; yy < 56; yy++) {
+      for (let xx = 0; xx < w; xx++) {
+        const dx = (xx + PANEL_CUT - DIAL_X) / DIAL_RX, dy = (yy - DIAL_Y) / DIAL_RY;
+        if (dx * dx + dy * dy > 1) data[(yy * w + xx) * 4 + 3] = 0;
+      }
+    }
+    x.putImageData(new ImageData(data, w, 56), 0, 0);
     return (byWidth[width] = c);
   }
 
@@ -1018,11 +1031,9 @@ export class Game {
       for (const [color, blur, dy] of [['rgba(166,233,248,0.5)', 2, 0]]) {
         ctx.save();
         ctx.shadowColor = color; ctx.shadowBlur = blur * this.dpr; ctx.shadowOffsetY = dy * this.dpr;
-        if (this.touch) this.renderPanelEnds(s.img, x0, py, panelW, k);
         this.drawSmooth(composed, 0, 0, width, 56, x0, py, panelW, 56 * k);
         ctx.restore();
       }
-      if (this.touch) this.renderPanelEnds(s.img, x0, py, panelW, k);
       this.drawSmooth(composed, 0, 0, width, 56, x0, py, panelW, 56 * k);
     }
     const rect = (X, x, y, w, h, col) => { ctx.fillStyle = col; ctx.fillRect(X(x), py + y * k, X(x + w) - X(x), h * k); };
@@ -1453,16 +1464,16 @@ function itemsWidth(width) {
 //   top:    dial and FIRE, an empty frame stretched under the item tray, the frame end, then the
 //           WIND box widened on both sides of the wind centre (the small window between the item
 //           slots and WIND is left out)
-//   bottom: the bars, widened at column 210, then the frame end (the TURN box is left out:
-//           the banner and the lit panel tell whose turn it is)
+//   bottom: the bars, widened at column 210; the panel ends with them and with the WIND box,
+//           (the TURN box and the frame's right end are left out)
 function panelPieces(width) {
   const items = itemsWidth(width);
   const room = width - PANEL_FIXED - items;
   const a = Math.floor(room / 2), b = room - a;
   return {
     items,
-    top: [[PANEL_CUT, ITEMS_X, 1], [148, 149, items], [191, 196, 1], [225, 265, 1], [265, 266, a], [266, 290, 1], [290, 291, b], [291, 320, 1]],
-    bottom: [[PANEL_CUT, 210, 1], [210, 211, width - 291 + PANEL_CUT], [211, 286, 1], [314, 320, 1]],
+    top: [[PANEL_CUT, ITEMS_X, 1], [148, 149, items], [191, 196, 1], [225, 265, 1], [265, 266, a], [266, 290, 1], [290, 291, b], [291, 309, 1]],
+    bottom: [[PANEL_CUT, 210, 1], [210, 211, width - (210 - PANEL_CUT) - 73], [211, 284, 1]],
   };
 }
 
