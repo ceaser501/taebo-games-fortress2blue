@@ -860,6 +860,7 @@ export class Game {
     if (!t) return;
     const s = this.sprites[this.manifest.panels[PLAYERS[t.player].panel]];
     const { k, kx, x0, y: py, width, pieces, panelW, Xt, Xb, right } = this.panelLayout();
+    if (s && this.touch) this.renderPanelEnds(s.img, x0, py, panelW, k);
     if (s) this.drawCrisp(this.composedPanel(s.img, width, pieces), k, 0, 0, width, 56, x0, py, panelW, 56 * k);
     const rect = (X, x, y, w, h, col) => { ctx.fillStyle = col; ctx.fillRect(X(x), py + y * k, X(x + w) - X(x), h * k); };
     const font = (size) => `bold ${Math.round(size * k)}px "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans CJK KR", sans-serif`;
@@ -940,6 +941,34 @@ export class Game {
       this.renderChat(right, k);
     }
     if (!mine) { ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(x0, py, panelW, 56 * k); }
+  }
+
+  // Touch screens: thin rounded ends on both sides of the panel so it does not look cut off.
+  // They are filled with the panel's own edge column, so they take each player's colours.
+  renderPanelEnds(img, x0, py, panelW, k) {
+    const { ctx } = this;
+    const w = 6 * k, top = py + 14 * k, bottom = this.H;
+    for (const [from, dir] of [[x0, -1], [x0 + panelW, 1]]) {
+      const outer = from + dir * w;
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(from, top);
+      ctx.quadraticCurveTo(outer, top, outer, top + 10 * k);
+      ctx.lineTo(outer, bottom);
+      ctx.lineTo(from, bottom);
+      ctx.closePath();
+      ctx.clip();
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, 2, 0, 1, 56, Math.min(from, outer), py, w, 56 * k);
+      ctx.restore();
+      ctx.beginPath();
+      ctx.moveTo(from, top);
+      ctx.quadraticCurveTo(outer, top, outer, top + 10 * k);
+      ctx.lineTo(outer, bottom);
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = Math.max(1, k * 0.7);
+      ctx.stroke();
+    }
   }
 
   // The chat box at the right end of the bar, in the same blue metal as the panel.
