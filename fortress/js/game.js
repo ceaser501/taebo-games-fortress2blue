@@ -43,10 +43,12 @@ const PANEL_CUT = 7;
 // The dial's red ring (centre and radii, in picture columns and rows); left of its centre only
 // the ring is kept, so the panel's left end is round.
 const DIAL_X = 40, DIAL_Y = 31, DIAL_RX = 32.6, DIAL_RY = 31.5;
-const PANEL_FIXED = ITEMS_X - PANEL_CUT + 5 + 40 + 24 + 18;
+// The wind bar's middle piece is cut WIND_TRIM columns shorter than in the picture.
+const WIND_TRIM = 10;
+const PANEL_FIXED = ITEMS_X - PANEL_CUT + 5 + 40 + 24 - WIND_TRIM + 18;
 const PANEL_MIN_W = PANEL_FIXED + ITEMS_MIN + 12;
-// Touch screens: the panel is sized as if the tray still had six cards (so it stays as large as
-// before the calm-wind item went), then drawn one card narrower, with even margins.
+// Touch screens: the panel is sized as if the tray still had six cards and the wind bar its
+// full length (so it stays as large as before), then drawn that much narrower, with even margins.
 const ONE_CARD = 20;
 const TOUCH_PANEL_W = PANEL_MIN_W;
 // Height of the arrow pad on touch screens (#pad in style.css).
@@ -54,7 +56,7 @@ const PAD_SIZE = 3 * 38 + 2 * 2;
 // Touch screens: the arrow pad's right edge (6 + 3 * 38 + 2 * 2) and the 1번 button's left edge
 // (#actions scaled to 0.78: 6 + (73 + 48) * 0.78), measured from their sides of the screen. The
 // panel sits centred between them with the same gap on both sides.
-const PAD_RIGHT = 124, FIRE_LEFT = 100, SIDE_GAP = 8;
+const PAD_RIGHT = 124, FIRE_LEFT = 100.4, SIDE_GAP = 8;
 
 // Player 1 uses the red panel, player 2 the blue one.
 export const PLAYERS = [
@@ -579,7 +581,7 @@ export class Game {
     // On touch screens the right box is as wide as the fire cluster (#actions plus its margin),
     // so no button covers the panel.
     const rightW = this.touch ? FIRE_LEFT + SIDE_GAP : Math.round(clamp(W * 0.26, 220, 420));
-    this.panelScale = clamp(Math.min((W - leftW - rightW) / (this.touch ? TOUCH_PANEL_W + ONE_CARD : PANEL_MIN_W), (H * (this.touch ? 0.29 : 0.16)) / 56), 1, 2.4);
+    this.panelScale = clamp(Math.min((W - leftW - rightW) / (this.touch ? TOUCH_PANEL_W + ONE_CARD + WIND_TRIM : PANEL_MIN_W), (H * (this.touch ? 0.29 : 0.16)) / 56), 1, 2.4);
     this.panelH = Math.round(56 * this.panelScale);
     this.bar = { leftW, rightW };
     // The touch buttons sit in the boxes at both ends of the bar.
@@ -1484,7 +1486,7 @@ function panelPieces(width) {
   const a = Math.floor(room / 2), b = room - a;
   return {
     items,
-    top: [[PANEL_CUT, ITEMS_X, 1], [148, 149, items], [191, 196, 1], [225, 265, 1], [265, 266, a], [266, 290, 1], [290, 291, b], [291, 309, 1]],
+    top: [[PANEL_CUT, ITEMS_X, 1], [148, 149, items], [191, 196, 1], [225, 265, 1], [265, 266, a], [266 + WIND_TRIM, 290, 1], [290, 291, b], [291, 309, 1]],
     bottom: [[PANEL_CUT, 210, 1], [210, 211, width - (210 - PANEL_CUT) - 73], [211, 284, 1]],
   };
 }
