@@ -453,8 +453,9 @@ export class Game {
     const w = this.terrain.width;
     if (this.viewW >= w + 40) c.x = (w - this.viewW) / 2;
     else c.x = clamp(c.x, -20, w - this.viewW + 20);
-    // The bottom of the world sits on top of the panel; the view may rise to follow a shell.
-    c.y = clamp(c.y, -600, WORLD_H - this.viewH);
+    // The bottom of the world sits on top of the panel. The view rises only a little for high
+    // shells so the ground stays in sight; above that a marker shows where the shell is.
+    c.y = clamp(c.y, WORLD_H - this.viewH - 60, WORLD_H - this.viewH);
     c.shake *= 0.88;
   }
 
@@ -484,6 +485,7 @@ export class Game {
     this.renderWater();
     for (const t of this.tanks) if (!t.dead) this.renderTag(t);
     this.renderAim();
+    for (const p of this.projectiles) if (p.y < sy + 4) this.offscreenMarker(p.x, sy + 4);
     for (const l of this.labels) this.text(l.text, l.x, l.y, l.color, Math.min(1, l.life * 2), 11);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     this.renderTimer();
@@ -550,6 +552,14 @@ export class Game {
     const frame = this.frameAt(id, p.age);
     if (p.def.spin) this.drawFrame(id, frame, p.x, p.y);
     else this.drawFrame(id, frame, p.x, p.y, false, Math.atan2(p.vy, p.vx));
+  }
+
+  // A small yellow arrow on the top edge under a shell that flew above the view.
+  offscreenMarker(x, y) {
+    const { ctx } = this;
+    ctx.fillStyle = '#ffd84a'; ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 5, y + 8); ctx.lineTo(x + 5, y + 8); ctx.closePath();
+    ctx.fill(); ctx.stroke();
   }
 
   renderBlast(b) {
