@@ -3,6 +3,7 @@ import { Audio } from './audio.js';
 import { Game, DT } from './game.js';
 import { Music } from './music.js';
 import { TANKS, tankById } from './tanks.js';
+import { ITEMS } from './items.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('game');
@@ -163,6 +164,7 @@ function showEnd(winner) {
 
 function toMenu() {
   closePause();
+  closeChat();
   game = null;
   $('end').hidden = true;
   $('touch').hidden = true;
@@ -173,6 +175,15 @@ function toMenu() {
 
 const GAME_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'Tab']);
 window.addEventListener('keydown', (e) => {
+  if (document.activeElement === $('chat-input')) {
+    if (e.code === 'Escape') closeChat();
+    return;
+  }
+  if (e.code === 'Enter' && game && $('menu').hidden && $('pause').hidden && $('end').hidden) {
+    e.preventDefault();
+    openChat();
+    return;
+  }
   if (e.code === 'Escape') {
     if (game && $('end').hidden) togglePause();
     return;
@@ -225,6 +236,39 @@ for (const button of document.querySelectorAll('#touch [data-key]')) {
   button.addEventListener('contextmenu', (e) => e.preventDefault());
 }
 $('t-menu').onclick = () => togglePause();
+$('t-chat').onclick = () => openChat();
+
+// Chat: on a computer the box sits on the input line of the chat window; on touch screens it
+// opens above the bar on the left, where messages show.
+function openChat() {
+  if (!game) return;
+  const form = $('chat');
+  const { k, right } = game.panelLayout();
+  if (game.touch) {
+    Object.assign(form.style, { left: '10px', bottom: `${game.panelH + 10}px`, width: `${Math.min(320, innerWidth * 0.45)}px` });
+  } else {
+    // Same line height as the messages in renderChat().
+    const m = 4 * k + 2, size = Math.max(11, Math.round(6 * k));
+    Object.assign(form.style, { left: `${right.x + m}px`, bottom: `${4 * k + 3}px`, width: `${right.w - 2 * m}px` });
+    Object.assign($('chat-input').style, { height: `${size + 4}px`, fontSize: `${size}px`, padding: '0 4px' });
+  }
+  form.hidden = false;
+  game.chatOpen = true;
+  $('chat-input').focus();
+}
+function closeChat() {
+  $('chat').hidden = true;
+  $('chat-input').blur();
+  if (game) game.chatOpen = false;
+}
+$('chat').onsubmit = (e) => {
+  e.preventDefault();
+  const text = $('chat-input').value.trim();
+  if (text && game) game.say(`${game.players[0].name}: ${text}`, '#ffffff');
+  $('chat-input').value = '';
+  closeChat();
+};
+$('chat-input').addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== $('chat-input')) closeChat(); }));
 
 // Dragging pans the view, two fingers pinch to zoom, a tap on FIRE1 / FIRE2 picks the attack.
 let drag = null;
@@ -251,9 +295,14 @@ const endTouch = (e) => {
 window.addEventListener('pointercancel', endTouch);
 window.addEventListener('pointerup', (e) => {
   endTouch(e);
-  if (drag && drag.moved < 5 && game && !game.cpuTurn) {
-    const w = game.panelWeaponAt(e.clientX, e.clientY);
-    if (w != null && game.panelTank === game.active) { game.selectWeapon(w); syncTouch(); }
+  // A tap: FIRE1 / FIRE2 or an item slot on the panel, or the teleport target on the field.
+  if (drag && drag.moved < 5 && game && !game.cpuTurn && game.panelTank === game.active) {
+    const onBar = e.clientY >= game.H - game.panelH;
+    const w = onBar ? game.panelWeaponAt(e.clientX, e.clientY) : null;
+    const item = onBar ? game.panelItemAt(e.clientX, e.clientY) : null;
+    if (w != null) { game.selectWeapon(w); syncTouch(); }
+    else if (item != null) game.useItem(ITEMS[item].id);
+    else if (!onBar) game.clickAt(game.toWorld(e.clientX, e.clientY));
   }
   drag = null;
 });

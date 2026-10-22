@@ -100,6 +100,7 @@ export class Audio {
   }
   splash() { if (!this.play(this.buffers.splash, 0.8)) this.noiseBurst(0.6, 900, 0.5, 200); }
   bounce() { this.tone(300, 0.06, 0.12, 'triangle', 180); }
+  item() { this.tone(660, 0.1, 0.15, 'triangle', 990); setTimeout(() => this.tone(990, 0.15, 0.12, 'triangle', 1320), 90); }
   select() { this.tone(880, 0.05, 0.08, 'square', 1100); }
   // The turn clock: a soft tick each second, then a louder tick-tock from 10.
   clock(sec) {
