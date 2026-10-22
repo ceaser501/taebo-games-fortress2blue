@@ -48,6 +48,10 @@ export const PLAYERS = [
   { color: '#3d9bff', panel: 6 },
 ];
 
+// Text in the Worms HUD style: a heavy, rounded sans with an outline or a pill behind it.
+const FONT = '"Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans CJK KR", system-ui, sans-serif';
+const font = (size, weight = 800) => `${weight} ${size}px ${FONT}`;
+
 const rand = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
@@ -477,7 +481,11 @@ export class Game {
     for (const f of this.itemFx) f.life -= DT;
     this.itemFx = this.itemFx.filter((f) => f.life > 0);
     this.labels = this.labels.filter((l) => l.life > 0);
-    if (this.banner) { this.banner.life -= DT; if (this.banner.life <= 0) this.banner = null; }
+    if (this.banner) {
+      this.banner.life -= DT;
+      this.banner.age = (this.banner.age ?? 0) + DT;
+      if (this.banner.life <= 0) this.banner = null;
+    }
     // The tank whose turn it is fell in the water or blew up: the turn is over.
     if (this.state === 'aim' && this.active.dead) { this.state = 'fly'; this.fired = true; this.charge = null; }
     if (this.state === 'fly') {
@@ -591,7 +599,7 @@ export class Game {
     for (const t of this.tanks) if (!t.dead) this.renderTag(t);
     this.renderAim();
     for (const p of this.projectiles) if (p.y < sy + 4) this.offscreenMarker(p.x, sy + 4);
-    for (const l of this.labels) this.text(l.text, l.x, l.y, l.color, Math.min(1, l.life * 2), 11);
+    for (const l of this.labels) this.shout(l.text, l.x, l.y, l.color, Math.min(1, l.life * 2), 13);
     this.renderItemFx();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.renderChatOverlay();
@@ -646,13 +654,19 @@ export class Game {
     this.drawFrame(id, this.frameAt(id, time), t.x, t.y, t.facing > 0);
   }
 
+  // Name pill and a rounded health bar over the tank.
   renderTag(t) {
     const { ctx } = this;
-    this.text(t.name, t.x, t.y - 46, t.color, 1, 10);
-    ctx.fillStyle = '#000';
-    ctx.fillRect(Math.round(t.x - 16), Math.round(t.y - 39), 32, 5);
-    ctx.fillStyle = t.hp > 50 ? '#3ddc54' : t.hp > 25 ? '#ffd84a' : '#ff3b3b';
-    ctx.fillRect(Math.round(t.x - 15), Math.round(t.y - 38), Math.round((30 * t.hp) / 100), 3);
+    this.text(t.name, t.x, t.y - 48, t.color, 1, 9);
+    const w = 32, h = 5, x = t.x - w / 2, y = t.y - 40;
+    ctx.beginPath(); ctx.roundRect(x - 1, y - 1, w + 2, h + 2, 3.5);
+    ctx.fillStyle = 'rgba(8,14,28,0.85)'; ctx.fill();
+    ctx.lineWidth = 0.6; ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.stroke();
+    const col = t.hp > 50 ? ['#7dff8f', '#28b64a'] : t.hp > 25 ? ['#ffe680', '#e0a800'] : ['#ff8a7a', '#d42a2a'];
+    const g = ctx.createLinearGradient(0, y, 0, y + h);
+    g.addColorStop(0, col[0]); g.addColorStop(1, col[1]);
+    ctx.beginPath(); ctx.roundRect(x, y, (w * t.hp) / 100, h, 2.5);
+    ctx.fillStyle = g; ctx.fill();
   }
 
   renderProjectile(p) {
@@ -684,7 +698,7 @@ export class Game {
         }
         ctx.restore();
       }
-      this.text(`${f.name}!`, x, y - 50 - k * 14 - i * 13, f.color, Math.min(1, f.life * 2), 11);
+      this.shout(`${f.name}!`, x, y - 50 - k * 14 - i * 13, f.color, Math.min(1, f.life * 2), 12);
     });
   }
 
@@ -728,18 +742,47 @@ export class Game {
     this.text(`${Math.round(t.aim)}°`, t.x - t.facing * 24, t.cy + 6, '#fff', 1, 10);
   }
 
+  // A tag: dark rounded pill, thin border in `color` with a soft glow, text in `color`.
   text(str, x, y, color, alpha = 1, size = 10) {
     const { ctx } = this;
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.font = `bold ${size}px "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans CJK KR", sans-serif`;
+    ctx.font = font(size);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const w = ctx.measureText(str).width + 6;
-    ctx.fillStyle = 'rgba(0,0,0,0.65)';
-    ctx.fillRect(Math.round(x - w / 2), Math.round(y - size * 0.6), Math.ceil(w), Math.round(size * 1.2));
+    const w = ctx.measureText(str).width + size * 1.1, h = size * 1.55;
+    ctx.beginPath();
+    ctx.roundRect(x - w / 2, y - h / 2, w, h, h / 2);
+    ctx.fillStyle = 'rgba(8,14,28,0.82)';
+    ctx.shadowColor = color;
+    ctx.shadowBlur = size * 0.8;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = Math.max(0.6, size / 12);
+    ctx.strokeStyle = color;
+    ctx.stroke();
     ctx.fillStyle = color;
-    ctx.fillText(str, Math.round(x), Math.round(y) + 1);
+    ctx.fillText(str, x, y + size * 0.06);
+    ctx.restore();
+  }
+
+  // Big floating numbers (damage, heal, item names): bold with a dark outline, no box.
+  shout(str, x, y, color, alpha = 1, size = 13) {
+    const { ctx } = this;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.font = font(size, 900);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = size / 3.5;
+    ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = size / 3;
+    ctx.strokeText(str, x, y);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = color;
+    ctx.fillText(str, x, y);
     ctx.restore();
   }
 
@@ -764,20 +807,30 @@ export class Game {
     this.drawCrisp(img, k, 0, 0, 32, 20, Math.round(x), Math.round(y), w, h);
   }
 
+  // Turn and item messages, like the Worms toast: a glowing pill that slides in under the clock.
   renderBanner() {
     const b = this.banner;
     if (!b) return;
-    const { ctx } = this;
-    const { W } = this;
+    const { ctx, W } = this;
+    b.age = (b.age ?? 0);
+    const size = W >= 1000 ? 18 : 14;
+    const y = (W >= 1000 ? 82 : 64) - Math.max(0, 6 - b.age * 40);
     ctx.save();
-    ctx.globalAlpha = Math.min(1, b.life * 3);
-    ctx.font = `bold ${W >= 1000 ? 20 : 15}px "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans CJK KR", sans-serif`;
+    ctx.globalAlpha = Math.min(1, b.life * 3, b.age * 6 + 0.2);
+    ctx.font = font(size);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const y = W >= 1000 ? 80 : 62;
-    const w = ctx.measureText(b.text).width + 24;
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.fillRect(Math.round(W / 2 - w / 2), y - 15, Math.ceil(w), 30);
+    const w = ctx.measureText(b.text).width + size * 1.8, h = size * 2;
+    ctx.beginPath();
+    ctx.roundRect(W / 2 - w / 2, y - h / 2, w, h, h / 2);
+    ctx.fillStyle = 'rgba(8,14,28,0.82)';
+    ctx.shadowColor = b.color;
+    ctx.shadowBlur = 14;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = b.color;
+    ctx.stroke();
     ctx.fillStyle = b.color;
     ctx.fillText(b.text, W / 2, y + 1);
     ctx.restore();
@@ -881,11 +934,11 @@ export class Game {
     if (s && this.touch) this.renderPanelEnds(s.img, x0, py, panelW, k);
     if (s) this.drawCrisp(this.composedPanel(s.img, width, pieces), k, 0, 0, width, 56, x0, py, panelW, 56 * k);
     const rect = (X, x, y, w, h, col) => { ctx.fillStyle = col; ctx.fillRect(X(x), py + y * k, X(x + w) - X(x), h * k); };
-    const font = (size) => `bold ${Math.round(size * k)}px "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans CJK KR", sans-serif`;
+    const pfont = (size) => font(Math.round(size * k));
     const mine = t === this.active && this.state === 'aim';
     // Energy, Power (with last turn's power as a yellow mark), Move.
     rect(Xb, 140, 29, (140 * t.hp) / 100, 6, '#3ddc54');
-    ctx.font = font(6); ctx.fillStyle = '#fff'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.font = pfont(6); ctx.fillStyle = '#fff'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
     ctx.fillText(t.hp, Xb(278), py + 32.5 * k);
     const p0 = Xb(140), p1 = Xb(280);
     if (mine && this.charge != null) {
@@ -911,7 +964,7 @@ export class Game {
     else if (wind > 0) ctx.fillRect(wc, wy, (wr - wc) * wind, wh);
     ctx.fillStyle = '#fff';
     ctx.fillRect(Math.round(wc), wy - k, Math.max(1, k / 2), wh + 2 * k);
-    ctx.font = font(6.5); ctx.textAlign = 'right'; ctx.lineWidth = 3; ctx.strokeStyle = '#000';
+    ctx.font = pfont(6.5); ctx.textAlign = 'right'; ctx.lineWidth = 3; ctx.strokeStyle = '#000';
     const windText = `${wind < 0 ? '◀ ' : wind > 0 ? '▶ ' : ''}${Math.round(Math.abs(wind) * 10)}`;
     ctx.strokeText(windText, Xt(305), py + 19.5 * k);
     ctx.fillStyle = '#cfe8ff';
@@ -922,7 +975,7 @@ export class Game {
       const ang = t.facing > 0 ? -a : Math.PI + a;
       ctx.strokeStyle = '#ffd84a'; ctx.lineWidth = Math.max(2, 1.6 * k); ctx.lineCap = 'round';
       ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(ang) * r, cy + Math.sin(ang) * r); ctx.stroke();
-      ctx.font = font(10); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = pfont(10); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(Math.round(t.aim), cx, cy + 9 * k);
     }
     // FIRE1 / FIRE2: the chosen attack is lit.
@@ -941,7 +994,7 @@ export class Game {
       ctx.drawImage(icon, sx + 1, sy + 1, sw - 2, sh - 2);
       ctx.restore();
       if (used) { ctx.strokeStyle = '#ffd84a'; ctx.lineWidth = 2; ctx.strokeRect(sx, sy, sw, sh); }
-      ctx.font = font(5.5); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+      ctx.font = pfont(5.5); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
       ctx.lineWidth = 3; ctx.strokeStyle = '#000';
       ctx.strokeText(t.items[item.id], sx + sw - 1, sy + sh);
       ctx.fillStyle = '#fff';
@@ -950,14 +1003,11 @@ export class Game {
     ctx.textBaseline = 'middle';
     // TURN: lit in the player's colour when it is their turn.
     rect(Xb, 290, 30, 23, 15, mine ? t.color : '#20242c');
-    ctx.font = font(6); ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+    ctx.font = pfont(6); ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
     ctx.fillText(mine ? 'MY' : this.state === 'aim' ? '상대' : '', Xb(301.5), py + 37.5 * k);
     // Touch screens leave the corners open so the field shows around the arrow pad and the
     // fire buttons; a computer gets the chat box.
-    if (!this.touch) {
-      this.renderBox(right, k);
-      this.renderChat(right, k);
-    }
+    if (!this.touch) this.renderChat(right, k);
     if (!mine) { ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(x0, py, panelW, 56 * k); }
   }
 
@@ -989,43 +1039,64 @@ export class Game {
     }
   }
 
-  // The chat box at the right end of the bar, in the same blue metal as the panel.
-  renderBox(b, k) {
+  // A Worms HUD panel: dark metal gradient, rounded, thin grey border, a highlight along the
+  // top and a drop shadow.
+  hudPanel(x, y, w, h, r = 10) {
     const { ctx } = this;
-    const g = ctx.createLinearGradient(0, b.y, 0, b.y + b.h);
-    g.addColorStop(0, '#5d8fe0'); g.addColorStop(0.5, '#2f5fb8'); g.addColorStop(1, '#1d3f86');
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, r);
+    const g = ctx.createLinearGradient(0, y, 0, y + h);
+    g.addColorStop(0, 'rgba(42,48,60,0.94)'); g.addColorStop(1, 'rgba(16,19,26,0.94)');
     ctx.fillStyle = g;
-    ctx.fillRect(b.x, b.y + 4 * k, b.w, b.h - 4 * k);
-    ctx.fillStyle = '#a6e9f8';
-    ctx.fillRect(b.x, b.y + 4 * k, b.w, Math.max(1, k));
-    const m = 4 * k;
-    ctx.fillStyle = '#000';
-    ctx.fillRect(b.x + m - k, b.y + 8 * k - k, b.w - 2 * m + 2 * k, b.h - 12 * k + 2 * k);
-    ctx.fillStyle = '#06101f';
-    ctx.fillRect(b.x + m, b.y + 8 * k, b.w - 2 * m, b.h - 12 * k);
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 14;
+    ctx.shadowOffsetY = 4;
+    ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(x + 0.5, y + 0.5, w - 1, h - 1, r);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#596273';
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x + r, y + 1.5); ctx.lineTo(x + w - r, y + 1.5);
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.stroke();
+    ctx.restore();
   }
 
-  // Chat and game messages inside the right box (computer).
+  // The chat box at the right end of the bar (computer).
+  chatRect(b, k) {
+    const m = 5 * k;
+    return { x: b.x + m, y: b.y + 5 * k, w: b.w - 2 * m, h: b.h - 9 * k };
+  }
+
+  // Chat and game messages inside the box.
   renderChat(b, k) {
     const { ctx } = this;
-    const m = 4 * k, inner = { x: b.x + m, y: b.y + 8 * k, w: b.w - 2 * m, h: b.h - 12 * k };
+    const box = this.chatRect(b, k);
+    this.hudPanel(box.x, box.y, box.w, box.h);
+    const inner = { x: box.x + 8, y: box.y + 6, w: box.w - 16, h: box.h - 10 };
     const size = Math.max(11, Math.round(6 * k));
     ctx.save();
     ctx.beginPath(); ctx.rect(inner.x, inner.y, inner.w, inner.h); ctx.clip();
-    ctx.font = `bold ${size}px "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans CJK KR", sans-serif`;
+    ctx.font = font(size, 700);
     ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+    ctx.shadowColor = '#000'; ctx.shadowOffsetY = 1; ctx.shadowBlur = 2;
     const lineH = size + 4;
-    const inputY = inner.y + inner.h - 4;
+    const inputY = inner.y + inner.h - 2;
     if (!this.chatOpen) {
       ctx.fillStyle = 'rgba(255,255,255,0.35)';
-      ctx.fillText('Enter: 채팅', inner.x + 6, inputY);
+      ctx.fillText('Enter: 채팅', inner.x, inputY);
     }
-    ctx.fillStyle = 'rgba(255,255,255,0.12)';
-    ctx.fillRect(inner.x + 3, inputY - lineH, inner.w - 6, 1);
-    let y = inputY - lineH - 2;
+    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+    ctx.fillRect(inner.x, inputY - lineH, inner.w, 1);
+    let y = inputY - lineH - 3;
     for (let i = this.log.length - 1; i >= 0 && y > inner.y + 2; i--, y -= lineH) {
       ctx.fillStyle = this.log[i].color;
-      ctx.fillText(this.log[i].text, inner.x + 6, y);
+      ctx.fillText(this.log[i].text, inner.x, y);
     }
     ctx.restore();
   }
@@ -1034,20 +1105,21 @@ export class Game {
   renderChatOverlay() {
     if (!this.touch) return;
     const { ctx } = this;
-    const size = 13, lineH = 18;
+    const size = 13, lineH = 21;
     let y = this.H - 4 - PAD_SIZE - 10;
     ctx.save();
-    ctx.font = `bold ${size}px "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans CJK KR", sans-serif`;
+    ctx.font = font(size);
     ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
     const recent = this.log.filter((l) => this.time - l.time < 8).slice(-5);
     for (let i = recent.length - 1; i >= 0; i--, y -= lineH) {
       const l = recent[i];
       ctx.globalAlpha = clamp(8 - (this.time - l.time), 0, 1);
-      const w = ctx.measureText(l.text).width + 10;
-      ctx.fillStyle = 'rgba(0,0,0,0.5)';
-      ctx.fillRect(10, y - lineH + 2, w, lineH - 2);
+      const w = ctx.measureText(l.text).width + 18, h = lineH - 2;
+      ctx.beginPath(); ctx.roundRect(10, y - h, w, h, h / 2);
+      ctx.fillStyle = 'rgba(8,14,28,0.78)'; ctx.fill();
+      ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255,255,255,0.14)'; ctx.stroke();
       ctx.fillStyle = l.color;
-      ctx.fillText(l.text, 15, y - 1);
+      ctx.fillText(l.text, 19, y - 1);
     }
     ctx.restore();
   }
@@ -1058,18 +1130,20 @@ export class Game {
     const { W } = this;
     const w = Math.round(this.touch ? clamp(W * 0.2, 140, 190) : clamp(W * 0.18, 180, 280));
     const k = w / this.terrain.width, h = Math.round(WORLD_H * k);
-    const x = W - w - 8, y = 8;
-    ctx.fillStyle = 'rgba(8,16,40,0.6)';
-    ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
-    ctx.strokeStyle = 'rgba(166,233,248,0.8)'; ctx.lineWidth = 1;
-    ctx.strokeRect(x - 2.5, y - 2.5, w + 5, h + 5);
+    const x = W - w - 14, y = 14;
+    this.hudPanel(x - 6, y - 6, w + 12, h + 12, 10);
+    ctx.save();
+    ctx.beginPath(); ctx.roundRect(x, y, w, h, 5); ctx.clip();
+    ctx.fillStyle = 'rgba(70,110,170,0.25)';
+    ctx.fillRect(x, y, w, h);
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(this.terrain.canvas, x, y, w, h);
     ctx.imageSmoothingEnabled = false;
     for (const t of this.tanks) {
       if (t.dead) continue;
-      ctx.fillStyle = '#000'; ctx.fillRect(Math.round(x + t.x * k) - 3, Math.round(y + t.cy * k) - 3, 6, 6);
-      ctx.fillStyle = t.color; ctx.fillRect(Math.round(x + t.x * k) - 2, Math.round(y + t.cy * k) - 2, 4, 4);
+      ctx.beginPath(); ctx.arc(x + t.x * k, y + t.cy * k, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = t.color; ctx.fill();
+      ctx.lineWidth = 1.5; ctx.strokeStyle = '#000'; ctx.stroke();
     }
     ctx.fillStyle = '#ffd84a';
     for (const p of this.projectiles) ctx.fillRect(Math.round(x + p.x * k) - 1, Math.round(y + clamp(p.y, 0, WORLD_H) * k) - 1, 2, 2);
@@ -1077,7 +1151,10 @@ export class Game {
     ctx.fillRect(x, y + h - 2, w, 2);
     ctx.strokeStyle = 'rgba(255,255,255,0.8)';
     const c = this.camera;
-    ctx.strokeRect(Math.round(x + c.x * k) + 0.5, Math.round(y + c.y * k) + 0.5, Math.round(this.viewW * k), Math.round(this.viewH * k));
+    ctx.beginPath();
+    ctx.roundRect(Math.round(x + c.x * k) + 0.5, Math.round(y + c.y * k) + 0.5, Math.round(this.viewW * k), Math.round(this.viewH * k), 3);
+    ctx.stroke();
+    ctx.restore();
   }
 
   say(text, color = '#cfd8e6') {

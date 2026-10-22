@@ -245,12 +245,12 @@ function openChat() {
   const form = $('chat');
   const { k, right } = game.panelLayout();
   if (game.touch) {
-    Object.assign(form.style, { left: '10px', bottom: `${game.panelH + 10}px`, width: `${Math.min(320, innerWidth * 0.45)}px` });
+    Object.assign(form.style, { left: '10px', top: '', bottom: `${game.panelH + 10}px`, width: `${Math.min(320, innerWidth * 0.45)}px` });
   } else {
-    // Same line height as the messages in renderChat().
-    const m = 4 * k + 2, size = Math.max(11, Math.round(6 * k));
-    Object.assign(form.style, { left: `${right.x + m}px`, bottom: `${4 * k + 3}px`, width: `${right.w - 2 * m}px` });
-    Object.assign($('chat-input').style, { height: `${size + 4}px`, fontSize: `${size}px`, padding: '0 4px' });
+    // On the input line of the chat box (renderChat), same text size.
+    const box = game.chatRect(right, k), size = Math.max(11, Math.round(6 * k));
+    Object.assign(form.style, { left: `${box.x + 6}px`, top: `${box.y + box.h - size - 12}px`, bottom: '', width: `${box.w - 12}px` });
+    Object.assign($('chat-input').style, { height: `${size + 8}px`, fontSize: `${size}px`, padding: '0 6px' });
   }
   form.hidden = false;
   game.chatOpen = true;
