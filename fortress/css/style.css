@@ -244,9 +244,8 @@ body:not(.touch) .touch-help {
 /* The attack in use. */
 #t-w1.on,
 #t-w2.on {
-  border-color: #ffd84a;
-  color: #ffd84a;
-  background: rgba(255, 216, 74, 0.2);
+  border-color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.18);
 }
 
 #t-menu,

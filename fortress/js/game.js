@@ -33,7 +33,7 @@ const VIEW_W = 910, VIEW_H = 378;
 const PANEL_SPLIT = 26;
 // Item tray: from column ITEMS_X of the rebuilt panel, ITEMS_MIN..ITEMS_MAX columns wide, with
 // the cards reaching ITEMS_TOP rows above the panel. Only the item labels use short names.
-const ITEMS_X = 104, ITEMS_MIN = 120, ITEMS_MAX = 150, ITEMS_TOP = -3;
+const ITEMS_X = 104, ITEMS_MIN = 120, ITEMS_MAX = 150, ITEMS_TOP = 4;
 const ITEM_LABELS = { dual: '2연발', double: '공격 2배', power: '파워샷', calm: '무풍', heal: '회복', teleport: '순간이동' };
 // The WIND bar after reshapeWindBox(): from the end of the WIND label to column 306.
 const WIND_LEFT = 259, WIND_CENTRE = 283;
@@ -156,7 +156,6 @@ export class Game {
     this.camera.free = false;
     this.camera.snap = true;
     this.banner = { text: `${t.name} 차례`, color: t.color, life: 1.4 };
-    this.say(`${t.name} 차례 · 바람 ${this.wind < 0 ? '◀' : this.wind > 0 ? '▶' : ''}${Math.round(Math.abs(this.wind) * 10)}`, t.color);
     this.audio.turn();
     this.onTurn(t);
     if (this.cpuTurn) this.ai.plan(this.players[t.player].cpu);
@@ -813,7 +812,7 @@ export class Game {
       this.redDigits ??= {};
       img = this.redDigits[id] ??= tint(s.img, '#ff2a2a');
     }
-    this.drawCrisp(img, k, 0, 0, 32, 20, Math.round(x), Math.round(y), w, h);
+    this.drawSmooth(img, 0, 0, 32, 20, Math.round(x), Math.round(y), w, h);
   }
 
   // Turn and item messages, like the Worms toast: a glowing pill that slides in under the clock.
@@ -904,6 +903,28 @@ export class Game {
     return c;
   }
 
+  // Pixel art redrawn at 4x with Scale2x applied twice: diagonal edges and letter shapes get
+  // smooth outlines instead of square steps, colours stay exactly the original ones.
+  smooth(img) {
+    this.smoothCache ??= new WeakMap();
+    let c = this.smoothCache.get(img);
+    if (!c) {
+      c = scale2x(scale2x(img));
+      c.n = 4;
+      this.smoothCache.set(img, c);
+    }
+    return c;
+  }
+
+  // Like drawCrisp, from the smooth() copy.
+  drawSmooth(img, sx, sy, sw, sh, dx, dy, dw, dh) {
+    const c = this.smooth(img), n = c.n, { ctx } = this;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(c, sx * n, sy * n, sw * n, sh * n, dx, dy, dw, dh);
+    ctx.imageSmoothingEnabled = false;
+  }
+
   // Draws part (sx, sy, sw, sh) of `img` into the screen rectangle, using crisp().
   drawCrisp(img, scale, sx, sy, sw, sh, dx, dy, dw, dh) {
     const c = this.crisp(img, scale), n = c.n, { ctx } = this;
@@ -948,38 +969,80 @@ export class Game {
         ctx.save();
         ctx.shadowColor = color; ctx.shadowBlur = blur * this.dpr; ctx.shadowOffsetY = dy * this.dpr;
         if (this.touch) this.renderPanelEnds(s.img, x0, py, panelW, k);
-        this.drawCrisp(composed, k, 0, 0, width, 56, x0, py, panelW, 56 * k);
+        this.drawSmooth(composed, 0, 0, width, 56, x0, py, panelW, 56 * k);
         ctx.restore();
       }
       if (this.touch) this.renderPanelEnds(s.img, x0, py, panelW, k);
-      this.drawCrisp(composed, k, 0, 0, width, 56, x0, py, panelW, 56 * k);
+      this.drawSmooth(composed, 0, 0, width, 56, x0, py, panelW, 56 * k);
     }
     const rect = (X, x, y, w, h, col) => { ctx.fillStyle = col; ctx.fillRect(X(x), py + y * k, X(x + w) - X(x), h * k); };
     const pfont = (size) => font(Math.round(size * k));
     const mine = t === this.active && this.state === 'aim';
-    // Energy, Power (with last turn's power as a yellow mark), Move.
-    rect(Xb, 140, 29, (140 * t.hp) / 100, 6, '#3ddc54');
-    ctx.font = pfont(6); ctx.fillStyle = '#fff'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
-    ctx.fillText(t.hp, Xb(278), py + 32.5 * k);
-    const p0 = Xb(140), p1 = Xb(280);
-    if (mine && this.charge != null) {
-      const g = ctx.createLinearGradient(p0, 0, p1, 0);
-      g.addColorStop(0, '#ffe25a'); g.addColorStop(1, '#ff3b3b');
-      ctx.fillStyle = g;
-      ctx.fillRect(p0, py + 38 * k, (p1 - p0) * this.charge, 6 * k);
+    // Energy, Power, Move redrawn over the picture: rounded label chips with clean text, dark
+    // tracks with a thin coloured rim, and glossy fills.
+    const b0 = Xb(140), b1 = Xb(280), l0 = Xb(100), l1 = Xb(138.5);
+    const rows = [
+      { y: 28.5, label: 'Energy', colors: ['#3fe060', '#14862e'], fill: ['#8cff9c', '#2fc24b', '#1b8f34'], value: t.hp / 100 },
+      { y: 37, label: 'Power', colors: ['#ff5a4a', '#b51a1a'], fill: ['#fff07a', '#ffb02e', '#ff3b2b'], value: mine && this.charge != null ? this.charge : 0 },
+      { y: 45.5, label: 'Move', colors: ['#f2b23a', '#8a5a0c'], fill: ['#ffe39a', '#ffb52e', '#d98a10'], value: t === this.active ? this.move / moveMax(t.def) : 1 },
+    ];
+    const rh = 8 * k, rr = 2.2 * k;
+    for (const r of rows) {
+      const y = py + r.y * k;
+      // Label chip.
+      ctx.beginPath(); ctx.roundRect(l0, y, l1 - l0, rh, rr);
+      let g = ctx.createLinearGradient(0, y, 0, y + rh);
+      g.addColorStop(0, r.colors[0]); g.addColorStop(1, r.colors[1]);
+      ctx.fillStyle = g; ctx.fill();
+      ctx.lineWidth = Math.max(1, 0.5 * k); ctx.strokeStyle = 'rgba(0,0,0,0.75)'; ctx.stroke();
+      ctx.save();
+      ctx.font = font(Math.round(5.6 * k), 900); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.shadowColor = 'rgba(0,0,0,0.7)'; ctx.shadowOffsetY = Math.max(1, 0.4 * k); ctx.shadowBlur = k;
+      ctx.fillStyle = '#fff';
+      ctx.fillText(r.label, (l0 + l1) / 2, y + rh / 2 + 0.3 * k, l1 - l0 - 2 * k);
+      ctx.restore();
+      // Track.
+      ctx.beginPath(); ctx.roundRect(b0, y, b1 - b0, rh, rr);
+      ctx.fillStyle = '#0a0d16'; ctx.fill();
+      ctx.lineWidth = Math.max(1, 0.5 * k); ctx.strokeStyle = r.colors[1]; ctx.stroke();
+      // Fill.
+      const fw = (b1 - b0 - 2 * k) * clamp(r.value, 0, 1);
+      if (fw > 0.5) {
+        ctx.beginPath(); ctx.roundRect(b0 + k, y + k, fw, rh - 2 * k, rr * 0.7);
+        g = ctx.createLinearGradient(0, y + k, 0, y + rh - k);
+        g.addColorStop(0, r.fill[0]); g.addColorStop(0.45, r.fill[1]); g.addColorStop(1, r.fill[2]);
+        ctx.fillStyle = g; ctx.fill();
+      }
     }
+    ctx.font = pfont(5.5); ctx.fillStyle = '#fff'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.save(); ctx.shadowColor = '#000'; ctx.shadowBlur = 2;
+    ctx.fillText(t.hp, b1 - 2 * k, py + 32.5 * k);
+    ctx.restore();
+    const p0 = b0, p1 = b1;
     // Tenths along the power bar, to aim by.
-    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.fillStyle = 'rgba(255,255,255,0.16)';
     for (let i = 1; i < 10; i++) ctx.fillRect(Math.round(p0 + ((p1 - p0) * i) / 10), py + 38 * k, 1, 6 * k);
     if (t.lastPower != null) {
       const mx = p0 + (p1 - p0) * t.lastPower, my = py + 37 * k;
       ctx.fillStyle = '#ffd84a'; ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(mx, my + 1); ctx.lineTo(mx - 5, my - 7); ctx.lineTo(mx + 5, my - 7); ctx.closePath(); ctx.fill(); ctx.stroke();
     }
-    rect(Xb, 140, 47, 140 * (t === this.active ? this.move / moveMax(t.def) : 1), 6, '#ffb52e');
     // Wind grows from the centre mark of the (thick) WIND bar, with its strength at the end.
     const wind = this.wind ?? 0;
     const wc = Xt(WIND_CENTRE), wl = Xt(WIND_LEFT), wr = Xt(306), wy = py + 17 * k, wh = 5 * k;
+    // Clean WIND chip over the pixel label.
+    {
+      const lx0 = Xt(230.5), lx1 = Xt(258), ly = py + 15.5 * k, lh = 7 * k;
+      ctx.beginPath(); ctx.roundRect(lx0, ly, lx1 - lx0, lh, 2 * k);
+      const g = ctx.createLinearGradient(0, ly, 0, ly + lh);
+      g.addColorStop(0, '#2a3350'); g.addColorStop(1, '#141a2c');
+      ctx.fillStyle = g; ctx.fill();
+      ctx.save();
+      ctx.font = font(Math.round(5.2 * k), 900); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#ff6a5a'; ctx.shadowColor = '#000'; ctx.shadowBlur = k;
+      ctx.fillText('WIND', (lx0 + lx1) / 2, ly + lh / 2 + 0.3 * k);
+      ctx.restore();
+    }
     ctx.fillStyle = '#7fd0ff';
     if (wind < 0) ctx.fillRect(wc + (wc - wl) * wind, wy, (wl - wc) * wind, wh);
     else if (wind > 0) ctx.fillRect(wc, wy, (wr - wc) * wind, wh);
@@ -1001,12 +1064,23 @@ export class Game {
     }
     // FIRE1 / FIRE2: the chosen attack is lit.
     if (t.weapon === 0) rect(Xt, 87, 14, 10, 11, '#ffd84a'); else rect(Xt, 79, 34, 10, 11, '#ffd84a');
-    this.renderItems(t, x0 + ITEMS_X * kx, py + ITEMS_TOP * k, pieces.items * kx, (27 - ITEMS_TOP) * k, k);
+    this.renderItems(t, x0 + ITEMS_X * kx, py + ITEMS_TOP * k, pieces.items * kx, (26.5 - ITEMS_TOP) * k, k);
     ctx.textBaseline = 'middle';
     // TURN: lit in the player's colour when it is their turn.
-    rect(Xb, 290, 30, 23, 15, mine ? t.color : '#20242c');
-    ctx.font = pfont(6); ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
-    ctx.fillText(mine ? 'MY' : this.state === 'aim' ? '상대' : '', Xb(301.5), py + 37.5 * k);
+    {
+      const tx = Xb(289.5), ty = py + 29.5 * k, tw = Xb(313.5) - tx, th = 16 * k;
+      ctx.beginPath(); ctx.roundRect(tx, ty, tw, th, 2.5 * k);
+      const g = ctx.createLinearGradient(0, ty, 0, ty + th);
+      if (mine) { g.addColorStop(0, '#ff7a6a'); g.addColorStop(1, '#c8261c'); } else { g.addColorStop(0, '#2c3346'); g.addColorStop(1, '#151a26'); }
+      ctx.fillStyle = g; ctx.fill();
+      ctx.lineWidth = Math.max(1, 0.6 * k); ctx.strokeStyle = mine ? '#ffd0a0' : '#000'; ctx.stroke();
+      ctx.save();
+      ctx.font = font(Math.round(6 * k), 900); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = k;
+      ctx.fillText(mine ? 'MY' : this.state === 'aim' ? '상대' : '', tx + tw / 2, ty + th / 2 + 0.3 * k);
+      ctx.font = font(Math.round(4 * k), 900); ctx.fillStyle = '#c9d6f0';
+      ctx.restore();
+    }
     // Touch screens leave the corners open so the field shows around the arrow pad and the
     // fire buttons; a computer gets the chat box.
     if (!this.touch) this.renderChat(right, k);
@@ -1017,8 +1091,22 @@ export class Game {
   // name and a yellow badge with how many are left. Items used this turn get a glowing frame.
   renderItems(t, x, y, w, h, k) {
     const { ctx } = this;
-    this.hudPanel(x, y, w, h, 4 * k);
-    const pad = 2 * k, gap = 1.5 * k;
+    // A slot sunk into the panel: dark well, shadow along the top, light rim along the bottom.
+    ctx.save();
+    ctx.beginPath(); ctx.roundRect(x, y, w, h, 3 * k);
+    const well = ctx.createLinearGradient(0, y, 0, y + h);
+    well.addColorStop(0, '#0b1020'); well.addColorStop(1, '#1a2238');
+    ctx.fillStyle = well; ctx.fill();
+    ctx.clip();
+    ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 4 * k; ctx.shadowOffsetY = k;
+    ctx.lineWidth = 2 * k; ctx.strokeStyle = '#000';
+    ctx.beginPath(); ctx.roundRect(x - k, y - k, w + 2 * k, h + 2 * k, 3 * k); ctx.stroke();
+    ctx.restore();
+    ctx.beginPath(); ctx.roundRect(x + 0.5, y + 0.5, w - 1, h - 1, 3 * k);
+    ctx.lineWidth = Math.max(1, 0.6 * k); ctx.strokeStyle = 'rgba(0,0,0,0.85)'; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + 3 * k, y + h + 0.5); ctx.lineTo(x + w - 3 * k, y + h + 0.5);
+    ctx.strokeStyle = 'rgba(200,235,255,0.7)'; ctx.stroke();
+    const pad = 1.5 * k, gap = 1.2 * k;
     const cw = (w - 2 * pad - gap * (ITEMS.length - 1)) / ITEMS.length, ch = h - 2 * pad;
     ITEMS.forEach((item, i) => {
       const cx = x + pad + i * (cw + gap), cy = y + pad;
@@ -1038,16 +1126,16 @@ export class Game {
       ctx.save();
       if (!left && !used) ctx.globalAlpha = 0.35;
       const icon = item.id === 'teleport' ? this.teleportIcon(t) : this.itemIcons[item.id];
-      const size = Math.min(cw - 2 * k, ch * 0.62);
-      if (icon) this.drawCrisp(icon, size / icon.height, 0, 0, icon.width, icon.height, cx + (cw - size) / 2, cy + 1.5 * k, size, size);
-      ctx.font = font(Math.max(7, Math.round(4 * k)));
+      const size = Math.min(cw - 2 * k, ch * 0.6);
+      if (icon) this.drawCrisp(icon, size / icon.height, 0, 0, icon.width, icon.height, cx + (cw - size) / 2, cy + 0.6 * k, size, size);
+      ctx.font = font(Math.max(7, Math.round(3.6 * k)));
       ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
       ctx.fillStyle = '#fff';
       ctx.shadowColor = '#000'; ctx.shadowBlur = 2; ctx.shadowOffsetY = 1;
-      ctx.fillText(ITEM_LABELS[item.id], cx + cw / 2, cy + ch - 1.2 * k, cw - 2);
+      ctx.fillText(ITEM_LABELS[item.id], cx + cw / 2, cy + ch - 0.6 * k, cw - 2);
       ctx.restore();
       // Count badge on the top-right corner.
-      const r = 3 * k, bx = cx + cw - r * 0.9, by = cy + r * 0.7;
+      const r = 2.5 * k, bx = cx + cw - r * 1.1, by = cy + r * 0.85;
       ctx.beginPath(); ctx.roundRect(bx - r * 1.1, by - r * 0.85, r * 2.2, r * 1.7, r * 0.85);
       ctx.fillStyle = left ? '#ffd84a' : '#5d6678'; ctx.fill();
       ctx.font = font(Math.round(r * 1.25), 900);
@@ -1300,4 +1388,36 @@ function reshapeWindBox(img) {
   x.fillRect(231, 16, 76, 7);
   x.drawImage(img, 230, 7, 27, 6, 231, 16, 27, 6);
   return c;
+}
+
+// Scale2x (EPX): doubles a picture, rounding off stair-step edges. Returns a canvas.
+function scale2x(src) {
+  const w = src.width, h = src.height;
+  const a = document.createElement('canvas');
+  a.width = w; a.height = h;
+  const ax = a.getContext('2d');
+  ax.drawImage(src, 0, 0);
+  const p = new Uint32Array(ax.getImageData(0, 0, w, h).data.buffer);
+  const out = document.createElement('canvas');
+  out.width = w * 2; out.height = h * 2;
+  const ox = out.getContext('2d');
+  const img = ox.createImageData(w * 2, h * 2);
+  const q = new Uint32Array(img.data.buffer);
+  const at = (x, y) => p[Math.min(h - 1, Math.max(0, y)) * w + Math.min(w - 1, Math.max(0, x))];
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const e = p[y * w + x], b = at(x, y - 1), d = at(x - 1, y), f = at(x + 1, y), hh = at(x, y + 1);
+      let e0 = e, e1 = e, e2 = e, e3 = e;
+      if (b !== hh && d !== f) {
+        if (d === b) e0 = d;
+        if (b === f) e1 = f;
+        if (d === hh) e2 = d;
+        if (hh === f) e3 = f;
+      }
+      const o = y * 2 * w * 2 + x * 2;
+      q[o] = e0; q[o + 1] = e1; q[o + w * 2] = e2; q[o + w * 2 + 1] = e3;
+    }
+  }
+  ox.putImageData(img, 0, 0);
+  return out;
 }
