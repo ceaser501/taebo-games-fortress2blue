@@ -38,7 +38,9 @@ const ITEM_LABELS = { dual: '2연발', double: '공격 2배', power: '파워샷'
 // The WIND bar after reshapeWindBox(): from the end of the WIND label to column 306.
 const WIND_LEFT = 259, WIND_CENTRE = 283;
 // Columns in the top rows without the stretchy ones; the panel is never narrower.
-const PANEL_FIXED = ITEMS_X + 5 + 40 + 24 + 29;
+// The panel starts at the angle dial's red ring: the frame left of it is cut off.
+const PANEL_CUT = 12;
+const PANEL_FIXED = ITEMS_X - PANEL_CUT + 5 + 40 + 24 + 29;
 const PANEL_MIN_W = PANEL_FIXED + ITEMS_MIN + 12;
 // Height of the arrow pad on touch screens (#pad in style.css).
 const PAD_SIZE = 3 * 38 + 2 * 2;
@@ -916,7 +918,7 @@ export class Game {
   // Screen point -> weapon index when it lands on FIRE1 or FIRE2.
   panelWeaponAt(x, y) {
     const { k, kx, x0, y: py } = this.panelLayout();
-    const u = (x - x0) / kx, v = (y - py) / k;
+    const u = (x - x0) / kx + PANEL_CUT, v = (y - py) / k;
     if (Math.hypot(u - 91.5, v - 19) < 10) return 0;
     if (Math.hypot(u - 83.5, v - 39) < 10) return 1;
     return null;
@@ -925,7 +927,7 @@ export class Game {
   // Screen point -> item index when it lands on one of the six slots.
   panelItemAt(x, y) {
     const { k, kx, x0, y: py } = this.panelLayout();
-    const u = (x - x0) / kx, v = (y - py) / k;
+    const u = (x - x0) / kx + PANEL_CUT, v = (y - py) / k;
     if (v < ITEMS_TOP || v > 27) return null;
     const i = Math.floor(((u - ITEMS_X) / itemsWidth(this.panelLayout().width)) * ITEMS.length);
     return i >= 0 && i < ITEMS.length ? i : null;
@@ -1134,7 +1136,7 @@ export class Game {
         ctx.restore();
       }
     });
-    this.renderItems(t, x0 + ITEMS_X * kx, py + ITEMS_TOP * k, pieces.items * kx, (26.5 - ITEMS_TOP) * k, k);
+    this.renderItems(t, x0 + (ITEMS_X - PANEL_CUT) * kx, py + ITEMS_TOP * k, pieces.items * kx, (26.5 - ITEMS_TOP) * k, k);
     ctx.textBaseline = 'middle';
     // Touch screens leave the corners open so the field shows around the arrow pad and the
     // fire buttons; a computer gets the chat box.
@@ -1226,12 +1228,12 @@ export class Game {
     return (this.teleportIcons[t.def.id] = c);
   }
 
-  // Touch screens: thin rounded ends on both sides of the panel so it does not look cut off.
+  // Touch screens: a thin rounded end on the right of the panel (the left ends at the dial).
   // They are filled with the panel's own edge column, so they take each player's colours.
   renderPanelEnds(img, x0, py, panelW, k) {
     const { ctx } = this;
     const w = 6 * k, top = py + 14 * k, bottom = this.H;
-    for (const [from, dir] of [[x0, -1], [x0 + panelW, 1]]) {
+    for (const [from, dir] of [[x0 + panelW, 1]]) {
       const outer = from + dir * w;
       ctx.save();
       ctx.beginPath();
@@ -1459,8 +1461,8 @@ function panelPieces(width) {
   const a = Math.floor(room / 2), b = room - a;
   return {
     items,
-    top: [[0, ITEMS_X, 1], [148, 149, items], [191, 196, 1], [225, 265, 1], [265, 266, a], [266, 290, 1], [290, 291, b], [291, 320, 1]],
-    bottom: [[0, 210, 1], [210, 211, width - 291], [211, 286, 1], [314, 320, 1]],
+    top: [[PANEL_CUT, ITEMS_X, 1], [148, 149, items], [191, 196, 1], [225, 265, 1], [265, 266, a], [266, 290, 1], [290, 291, b], [291, 320, 1]],
+    bottom: [[PANEL_CUT, 210, 1], [210, 211, width - 291 + PANEL_CUT], [211, 286, 1], [314, 320, 1]],
   };
 }
 
