@@ -11,7 +11,6 @@ const SFX = {
   small: '00000143',
   medium: '00000121',
   large: '00000142',
-  splash: '00000153',
 };
 
 export class Audio {
@@ -98,7 +97,6 @@ export class Audio {
     this.noiseBurst(0.4 + r / 80, 1800, 1.0, 80);
     this.tone(90, 0.4 + r / 120, 0.5, 'sine', 30);
   }
-  splash() { if (!this.play(this.buffers.splash, 0.8)) this.noiseBurst(0.6, 900, 0.5, 200); }
   bounce() { this.tone(300, 0.06, 0.12, 'triangle', 180); }
   item() { this.tone(660, 0.1, 0.15, 'triangle', 990); setTimeout(() => this.tone(990, 0.15, 0.12, 'triangle', 1320), 90); }
   select() { this.tone(880, 0.05, 0.08, 'square', 1100); }
