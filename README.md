@@ -24,6 +24,14 @@ Cloudflare Pages 프로젝트 `taesu-fortress`에 배포합니다(처음에는 �
 
 ## 손으로 배포 (Cloudflare Pages)
 
+맥에서는 아래 한 줄이면 원본 데이터 받기(없으면 clone, 있으면 pull)·변환·빌드·배포까지 합니다.
+
+```bash
+npm run release
+```
+
+나눠서 하려면:
+
 ```bash
 npm run build
 npm run deploy          # dist/ 를 Cloudflare Pages 프로젝트 taesu-fortress 로 올림

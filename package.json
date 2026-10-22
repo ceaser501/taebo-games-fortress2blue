@@ -12,7 +12,8 @@
     "start": "webpack serve --open --config webpack.config.dev.js",
     "build": "webpack --config webpack.config.prod.js",
     "fortress:assets": "node fortress/tools/convert-assets.mjs",
-    "deploy": "npx -y wrangler@3 pages deploy dist --project-name taesu-fortress --branch main --commit-dirty=true"
+    "deploy": "npx -y wrangler@3 pages deploy dist --project-name taesu-fortress --branch main --commit-dirty=true",
+    "release": "node fortress/tools/release.mjs"
   },
   "devDependencies": {
     "copy-webpack-plugin": "^11.0.0",
